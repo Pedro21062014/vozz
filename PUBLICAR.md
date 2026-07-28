@@ -1,46 +1,15 @@
-# Publicar o `vozz`: repositório + npm automático
+# Publicar o `vozz` no npm
 
-O repositório local **já está pronto**, com um commit inicial e os workflows
-configurados. Faltam só os passos que exigem *suas* credenciais.
+O repositório **já está no ar**: https://github.com/Pedro21062014/vozz
 
-Resumo: criar o repo no GitHub → dar push → salvar o token npm no secret →
-rodar `npm version patch` a cada release.
+Passos concluídos: autoria definida, código enviado, workflows ativos e
+validados (CI verde em Node 18/20/22; publicação testada em modo simulação).
+
+Falta apenas o token do npm — que só você pode criar.
 
 ---
 
-## 1. Personalize a autoria
-
-Os campos `author`/`repository` ainda apontam para um placeholder:
-
-```bash
-node scripts/preparar-publicacao.mjs --autor "Seu Nome" --github seu-usuario
-git commit -am "chore: definir autoria e repositório"
-```
-
-Opcional: `--email voce@exemplo.com` e `--pacote outro-nome` (caso o nome
-`vozz` tenha sido tomado — confira com `npm view vozz`).
-
-## 2. Crie o repositório no GitHub
-
-Pelo site: **github.com/new** → nome `vozz` → **não** marque nada
-(sem README, sem .gitignore, sem licença — já existem aqui).
-
-Ou, se você tiver o GitHub CLI:
-
-```bash
-gh repo create vozz --public --source=. --remote=origin --push
-```
-
-## 3. Envie o código
-
-Se não usou o `gh` acima:
-
-```bash
-git remote add origin https://github.com/seu-usuario/vozz.git
-git push -u origin main
-```
-
-## 4. Configure o token do npm
+## 1. Configure o token do npm
 
 **No npm** — crie um token de automação (funciona mesmo com 2FA ligado):
 
@@ -57,7 +26,7 @@ git push -u origin main
 > O nome precisa ser `NPM_TOKEN`: é o que o workflow lê em
 > `secrets.NPM_TOKEN`.
 
-## 5. Publique
+## 2. Publique
 
 ```bash
 npm version patch     # sobe 0.1.0 -> 0.1.1, cria commit e tag

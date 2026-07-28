@@ -9,6 +9,10 @@ próprio dispositivo do usuário — o texto nunca sai da máquina.
 npm install vozz
 ```
 
+[![CI](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml/badge.svg)](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/vozz.svg)](https://www.npmjs.com/package/vozz)
+[![licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue.svg)](./LICENSE)
+
 ```js
 import { Vozz } from "vozz";
 
