@@ -25,7 +25,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/*.test.js",
     "eval": "node scripts/eval-g2p.mjs",
     "demo": "node scripts/demo-node.mjs",
     "serve": "npx --yes serve examples -l 8080"
