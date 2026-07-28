@@ -105,6 +105,10 @@ export const LEXICO = new Map(Object.entries({
   site: "sˈaɪtʃy", email: "ˌemaˈiʊ", online: "oŋlˈaɪŋ",
   software: "sˈɔftweə", hardware: "xˈaɾdiwɛɾ", mouse: "mˈaʊzi",
   internet: "ˌiŋteɾənˈɛtʃ", wifi: "wifˈi", app: "ˈap",
+  // Siglas técnicas lidas letra a letra (sem vogal, o G2P as leria como palavra).
+  npm: "ˈeni pˈe ˈemi", api: "ˌapiˈi", url: "ˌuˈɛli", css: "sˈe ˈesi ˈesi",
+  html: "ˌaɡˈa tˈe ˈemi ˈɛli", sql: "ˌɛsi kˈu ˈɛli", cli: "sˈe ˈɛli ˈi",
+  json: "ʒˈejzõŋ", npx: "ˈeni pˈe ʃˈis",
   smartphone: "zmˌaɾətfˈony", link: "lˈiŋk", download: "daʊŋlˈowd",
   design: "dezˈaɪn", startup: "staɾətˈup", feedback: "fˌeedbˈak",
   google: "ɡˈuɡol", youtube: "jˌowtˈuby", whatsapp: "watsˈap",
