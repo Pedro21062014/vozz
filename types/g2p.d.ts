@@ -1,5 +1,5 @@
 /**
- * vozz/g2p — conversor grafema→fonema pt-BR em JS puro (sem WASM, sem rede).
+ * @pedrobef/vozz/g2p — conversor grafema→fonema pt-BR em JS puro (sem WASM, sem rede).
  */
 
 export interface OpcoesFonemizar {

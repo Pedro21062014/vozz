@@ -1,7 +1,7 @@
 /**
  * vozz — TTS ultrarrealista em português do Brasil, 100% offline.
  *
- *   import { Vozz } from "vozz";
+ *   import { Vozz } from "@pedrobef/vozz";
  *
  *   const tts = await Vozz.carregar();
  *   const audio = await tts.falar("Olá! Tudo bem com você?");
@@ -260,7 +260,7 @@ let instanciaPadrao = null;
 /**
  * Sintetiza sem gerenciar instância — carrega o modelo na 1ª chamada e reusa.
  *
- *   import { falar } from "vozz";
+ *   import { falar } from "@pedrobef/vozz";
  *   (await falar("Olá, mundo!")).tocar();
  *
  * @param {string} texto

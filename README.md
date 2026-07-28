@@ -6,15 +6,15 @@ Sem API key. Sem servidor. Sem custo por caractere. O modelo neural roda no
 próprio dispositivo do usuário — o texto nunca sai da máquina.
 
 ```bash
-npm install vozz
+npm install @pedrobef/vozz
 ```
 
 [![CI](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml/badge.svg)](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/vozz.svg)](https://www.npmjs.com/package/vozz)
+[![npm](https://img.shields.io/npm/v/@pedrobef/vozz.svg)](https://www.npmjs.com/package/@pedrobef/vozz)
 [![licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue.svg)](./LICENSE)
 
 ```js
-import { Vozz } from "vozz";
+import { Vozz } from "@pedrobef/vozz";
 
 const tts = await Vozz.carregar();
 const audio = await tts.falar("Olá! Tudo bem com você?");
@@ -111,7 +111,7 @@ for await (const { texto, audio } of tts.falarEmFluxo(textoLongo, { voz: "dora" 
 ### Ler a resposta de um LLM em tempo real
 
 ```js
-import { DivisorDeTexto } from "vozz";
+import { DivisorDeTexto } from "@pedrobef/vozz";
 
 const divisor = new DivisorDeTexto();
 
@@ -140,7 +140,7 @@ audio.duracao;            // segundos
 ### Atalho de uma linha
 
 ```js
-import { falar } from "vozz";
+import { falar } from "@pedrobef/vozz";
 (await falar("Olá, mundo!")).tocar();  // carrega na 1ª chamada e reusa
 ```
 
@@ -186,7 +186,7 @@ O G2P também é importável sozinho — sem carregar o modelo, sem rede,
 útil para lipsync, visemas ou legendas fonéticas:
 
 ```js
-import { fonemizar, silabificar } from "vozz/g2p";
+import { fonemizar, silabificar } from "@pedrobef/vozz/g2p";
 ```
 
 ---
@@ -194,7 +194,7 @@ import { fonemizar, silabificar } from "vozz/g2p";
 ## Notas de integração
 
 **Bundlers.** O pacote é ESM puro. Vite/Next/Webpack funcionam direto. Em
-projetos com SSR, carregue no cliente: `const { Vozz } = await import("vozz")`.
+projetos com SSR, carregue no cliente: `const { Vozz } = await import("@pedrobef/vozz")`.
 
 **COOP/COEP.** Não são obrigatórios. Ative-os apenas se quiser WASM
 multi-thread (mais velocidade):

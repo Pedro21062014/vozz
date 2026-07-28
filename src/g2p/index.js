@@ -1,5 +1,5 @@
 /**
- * vozz/g2p — Conversor grafema→fonema (G2P) para português do Brasil, em JS puro.
+ * @pedrobef/vozz/g2p — Conversor grafema→fonema (G2P) para português do Brasil, em JS puro.
  *
  * Gera IPA na mesma convenção do espeak-ng `pt-br`, que é exatamente a convenção
  * com que o modelo neural foi treinado. Não usa WASM, não baixa dados e roda em
