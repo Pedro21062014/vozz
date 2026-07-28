@@ -10,17 +10,16 @@ e disparar a publicação.
 
 ## Por que ainda não publicou
 
-O workflow publica quando uma **tag `v*`** é enviada. Nenhuma tag foi criada
-até agora, então ele nunca rodou em modo real. A única execução foi uma
-**simulação** (dry-run), usada para validar o pipeline — nela o passo de
-publicar é pulado de propósito.
+Faltava o token do npm, e o workflow tinha um modo de simulação ligado por
+padrão — clicar em "Run workflow" rodava o pipeline sem publicar nada.
+
+Esse modo foi **removido**: agora o workflow sempre publica de verdade.
 
 | Verificação | Estado |
 | --- | --- |
 | `npm view vozz` | 404 — nome ainda livre |
-| Tags no repositório | nenhuma |
 | CI (Node 18/20/22) | verde |
-| Publicação simulada | passou |
+| Secret `NPM_TOKEN` | **falta configurar** (passos 1 e 2) |
 
 ---
 
@@ -47,14 +46,13 @@ conta tem 2FA.
 
 ## Passo 3 — Publicar
 
+O workflow **sempre publica de verdade** — não há mais modo de simulação.
 Escolha um dos dois caminhos.
 
 ### Opção A — pela aba Actions (sem terminal)
 
 1. Abra https://github.com/Pedro21062014/vozz/actions
-2. Clique em **Publicar no npm** → **Run workflow**
-3. **Desmarque** a caixa `Simular`
-4. **Run workflow**
+2. Clique em **Publicar no npm** → **Run workflow** → **Run workflow**
 
 ### Opção B — por tag, no terminal
 
@@ -74,13 +72,17 @@ npm view vozz
 
 ## Proteções do workflow
 
-Publicação é irreversível, então o `publish.yml` para antes de errar:
+Como o workflow sempre publica e publicação é irreversível, ele para antes
+de errar:
 
 1. **Testes primeiro** — o job de publicar depende do de testes.
 2. **Secret ausente** — se `NPM_TOKEN` não existir, falha com instrução
    clara em vez do erro críptico `ENEEDAUTH` do npm.
 3. **Tag × versão** — tag `v0.2.0` com `package.json` em `0.1.0` é barrada.
 4. **Versão duplicada** — se a versão já existe no npm, para antes de tentar.
+
+Ou seja: se algo estiver fora do lugar, o workflow falha **sem** publicar.
+O que ele nunca mais faz é rodar até o fim e não publicar em silêncio.
 
 Publica com `--provenance`: o npm mostra um selo ligando o pacote ao commit
 que o gerou.

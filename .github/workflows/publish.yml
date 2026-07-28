@@ -1,16 +1,13 @@
 name: Publicar no npm
 
-# Publica quando uma tag "v*" é enviada (ex.: v0.1.0), ou manualmente pela aba Actions.
+# Sempre publica de verdade. Dois gatilhos:
+#   - push de uma tag "v*" (ex.: v0.1.0)
+#   - execução manual pela aba Actions ("Run workflow")
 on:
   push:
     tags:
       - "v*"
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Simular (marcado = NÃO publica; desmarque para publicar de verdade)"
-        type: boolean
-        default: true
 
 jobs:
   testar:
@@ -49,6 +46,17 @@ jobs:
       - name: Instalar dependências
         run: npm ci || npm install
 
+      - name: Conferir se o secret NPM_TOKEN foi configurado
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "::error::O secret NPM_TOKEN não está configurado neste repositório."
+            echo "Crie um token do tipo 'Automation' em npmjs.com (Access Tokens)"
+            echo "e salve em: Settings > Secrets and variables > Actions,"
+            echo "com o nome exato NPM_TOKEN. Depois rode o workflow de novo."
+            exit 1
+          fi
+          echo "NPM_TOKEN presente."
+
       - name: Conferir se a tag bate com a versão do package.json
         if: github.event_name == 'push'
         run: |
@@ -61,34 +69,17 @@ jobs:
             exit 1
           fi
 
-      - name: Conferir se o secret NPM_TOKEN foi configurado
-        if: github.event_name == 'push' || !inputs.dry_run
-        run: |
-          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
-            echo "::error::O secret NPM_TOKEN não está configurado neste repositório."
-            echo "Crie um token do tipo 'Automation' em npmjs.com (Access Tokens)"
-            echo "e salve em: Settings > Secrets and variables > Actions,"
-            echo "com o nome exato NPM_TOKEN. Depois rode o workflow de novo."
-            exit 1
-          fi
-          echo "NPM_TOKEN presente."
-
       - name: Conferir se a versão já existe no npm
         run: |
           NOME="$(node -p "require('./package.json').name")"
           VERSAO="$(node -p "require('./package.json').version")"
           if npm view "$NOME@$VERSAO" version >/dev/null 2>&1; then
-            echo "::error::$NOME@$VERSAO já foi publicado. Suba a versão antes."
+            echo "::error::$NOME@$VERSAO já foi publicado. Suba a versão com 'npm version patch' antes."
             exit 1
           fi
           echo "$NOME@$VERSAO está livre."
 
-      - name: Simular publicação
-        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-        run: npm publish --dry-run
-
       - name: Publicar no npm
-        if: github.event_name == 'push' || !inputs.dry_run
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -96,10 +87,12 @@ jobs:
       - name: Resumo
         if: always()
         run: |
+          NOME="$(node -p "require('./package.json').name")"
+          VERSAO="$(node -p "require('./package.json').version")"
           {
             echo "### Publicação"
             echo ""
-            echo "- Pacote: \`$(node -p "require('./package.json').name")\`"
-            echo "- Versão: \`$(node -p "require('./package.json').version")\`"
+            echo "- Pacote: \`$NOME@$VERSAO\`"
             echo "- Evento: \`${{ github.event_name }}\`"
+            echo "- npm: https://www.npmjs.com/package/$NOME"
           } >> "$GITHUB_STEP_SUMMARY"
