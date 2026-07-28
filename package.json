@@ -51,15 +51,15 @@
     "phonemizer",
     "ipa"
   ],
-  "author": "vozz",
+  "author": "Pedro Berbis Freire",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vozz-tts/vozz.git"
+    "url": "git+https://github.com/Pedro21062014/vozz.git"
   },
-  "homepage": "https://github.com/vozz-tts/vozz#readme",
+  "homepage": "https://github.com/Pedro21062014/vozz#readme",
   "bugs": {
-    "url": "https://github.com/vozz-tts/vozz/issues"
+    "url": "https://github.com/Pedro21062014/vozz/issues"
   },
   "engines": {
     "node": ">=18"
