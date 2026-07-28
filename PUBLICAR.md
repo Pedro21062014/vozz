@@ -1,86 +1,93 @@
 # Publicar o `vozz` no npm
 
-O repositório **já está no ar**: https://github.com/Pedro21062014/vozz
+O repositório está no ar: https://github.com/Pedro21062014/vozz
+O pacote **ainda não está publicado** no npm.
 
-Passos concluídos: autoria definida, código enviado, workflows ativos e
-validados (CI verde em Node 18/20/22; publicação testada em modo simulação).
-
-Falta apenas o token do npm — que só você pode criar.
+Nada quebrou. Faltam dois passos que só você pode dar: criar o token do npm
+e disparar a publicação.
 
 ---
 
-## 1. Configure o token do npm
+## Por que ainda não publicou
 
-**No npm** — crie um token de automação (funciona mesmo com 2FA ligado):
+O workflow publica quando uma **tag `v*`** é enviada. Nenhuma tag foi criada
+até agora, então ele nunca rodou em modo real. A única execução foi uma
+**simulação** (dry-run), usada para validar o pipeline — nela o passo de
+publicar é pulado de propósito.
 
-1. npmjs.com → foto do perfil → **Access Tokens**
-2. **Generate New Token** → tipo **Automation**
-3. Copie o valor (só aparece uma vez)
+| Verificação | Estado |
+| --- | --- |
+| `npm view vozz` | 404 — nome ainda livre |
+| Tags no repositório | nenhuma |
+| CI (Node 18/20/22) | verde |
+| Publicação simulada | passou |
 
-**No GitHub** — salve como secret:
+---
 
-1. Repositório → **Settings** → **Secrets and variables** → **Actions**
+## Passo 1 — Criar o token no npm
+
+Precisa ser do tipo **Automation**: é o único que funciona em CI quando a
+conta tem 2FA.
+
+1. Acesse [npmjs.com](https://www.npmjs.com) e faça login
+2. Foto do perfil → **Access Tokens**
+3. **Generate New Token** → **Classic Token** → tipo **Automation**
+4. Copie o valor (aparece uma única vez)
+
+> Se você ainda não tem conta no npm, crie em npmjs.com/signup e confirme o
+> e-mail antes de gerar o token.
+
+## Passo 2 — Salvar o token como secret no GitHub
+
+1. Abra https://github.com/Pedro21062014/vozz/settings/secrets/actions
 2. **New repository secret**
-3. Nome exatamente `NPM_TOKEN`, valor = o token copiado
+3. **Name:** `NPM_TOKEN` (exatamente assim)
+4. **Secret:** cole o token
+5. **Add secret**
 
-> O nome precisa ser `NPM_TOKEN`: é o que o workflow lê em
-> `secrets.NPM_TOKEN`.
+## Passo 3 — Publicar
 
-## 2. Publique
+Escolha um dos dois caminhos.
+
+### Opção A — pela aba Actions (sem terminal)
+
+1. Abra https://github.com/Pedro21062014/vozz/actions
+2. Clique em **Publicar no npm** → **Run workflow**
+3. **Desmarque** a caixa `Simular`
+4. **Run workflow**
+
+### Opção B — por tag, no terminal
 
 ```bash
-npm version patch     # sobe 0.1.0 -> 0.1.1, cria commit e tag
-git push --follow-tags
-```
-
-O push da tag dispara o workflow, que roda os testes e publica.
-Acompanhe na aba **Actions**.
-
-Para a **primeira** publicação em `0.1.0` (sem subir versão):
-
-```bash
+cd vozz
 git tag v0.1.0
 git push --follow-tags
 ```
 
----
-
-## Como os workflows funcionam
-
-| Arquivo | Quando roda | O que faz |
-| --- | --- | --- |
-| `.github/workflows/ci.yml` | push e PR na `main` | Testes em Node 18, 20 e 22 + métrica do G2P |
-| `.github/workflows/publish.yml` | tag `v*` ou execução manual | Testa e publica no npm |
-
-O `publish.yml` tem três proteções, porque publicação é irreversível:
-
-1. **Testes primeiro** — o job de publicação depende do job de testes.
-2. **Tag × versão** — se a tag `v0.2.0` não bater com o `package.json`, falha
-   com mensagem explicando. Evita tag e versão dessincronizadas.
-3. **Versão duplicada** — se aquela versão já existe no npm, para antes de
-   tentar (o npm recusaria de qualquer forma, mas o erro fica claro).
-
-Publica com `--provenance`: o npm exibe um selo de procedência ligando o
-pacote ao commit que o gerou. Por isso o job tem `id-token: write`.
-
-### Testar sem publicar
-
-Aba **Actions** → **Publicar no npm** → **Run workflow** → deixe
-`Simular` marcado. Roda tudo, inclusive `npm publish --dry-run`, sem
-publicar nada.
-
----
-
-## Depois de publicar
+Acompanhe em **Actions**. Ao final, confira:
 
 ```bash
-mkdir /tmp/teste && cd /tmp/teste && npm init -y
-npm i vozz
-node -e "import('vozz').then(m => console.log(m.fonemizar('Olá, tudo bem?')))"
-# esperado: olˈa, tˈudʊ bˈeɪŋ?
+npm view vozz
 ```
 
-### Versões seguintes
+---
+
+## Proteções do workflow
+
+Publicação é irreversível, então o `publish.yml` para antes de errar:
+
+1. **Testes primeiro** — o job de publicar depende do de testes.
+2. **Secret ausente** — se `NPM_TOKEN` não existir, falha com instrução
+   clara em vez do erro críptico `ENEEDAUTH` do npm.
+3. **Tag × versão** — tag `v0.2.0` com `package.json` em `0.1.0` é barrada.
+4. **Versão duplicada** — se a versão já existe no npm, para antes de tentar.
+
+Publica com `--provenance`: o npm mostra um selo ligando o pacote ao commit
+que o gerou.
+
+---
+
+## Releases seguintes
 
 Nunca republique a mesma versão — o npm recusa.
 
@@ -91,7 +98,9 @@ npm version major   # 0.1.0 -> 1.0.0  quebra compatibilidade
 git push --follow-tags
 ```
 
-### Se errar algo
+`npm version` já cria o commit e a tag; o push dispara a publicação.
+
+## Se algo der errado
 
 ```bash
 npm unpublish vozz@0.1.0                # só nas primeiras 72h
@@ -102,6 +111,6 @@ npm deprecate vozz@0.1.0 "use a 0.1.1"  # alternativa depois disso
 
 ## Licença dos pesos
 
-O código é Apache-2.0. O modelo (Kokoro-82M, de `hexgrad`) também é
+Código em Apache-2.0. O modelo (Kokoro-82M, de `hexgrad`) também é
 Apache-2.0 e **não** vai dentro do pacote — é baixado do Hugging Face na
-primeira execução. Uso comercial liberado; o crédito já está no README.
+primeira execução. Uso comercial liberado; crédito no README.

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Simular (não publica de verdade)"
+        description: "Simular (marcado = NÃO publica; desmarque para publicar de verdade)"
         type: boolean
         default: true
 
@@ -60,6 +60,18 @@ jobs:
             echo "Use 'npm version <patch|minor|major>' para criar tag e versão juntas."
             exit 1
           fi
+
+      - name: Conferir se o secret NPM_TOKEN foi configurado
+        if: github.event_name == 'push' || !inputs.dry_run
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "::error::O secret NPM_TOKEN não está configurado neste repositório."
+            echo "Crie um token do tipo 'Automation' em npmjs.com (Access Tokens)"
+            echo "e salve em: Settings > Secrets and variables > Actions,"
+            echo "com o nome exato NPM_TOKEN. Depois rode o workflow de novo."
+            exit 1
+          fi
+          echo "NPM_TOKEN presente."
 
       - name: Conferir se a versão já existe no npm
         run: |
