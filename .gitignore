@@ -1,0 +1,13 @@
+node_modules/
+*.tgz
+*.log
+npm-debug.log*
+.npmrc
+
+# Amostras geradas por `npm run demo`
+examples/*.wav
+
+.DS_Store
+.idea/
+.vscode/
+*.swp

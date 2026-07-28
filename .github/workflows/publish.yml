@@ -1,0 +1,93 @@
+name: Publicar no npm
+
+# Publica quando uma tag "v*" é enviada (ex.: v0.1.0), ou manualmente pela aba Actions.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Simular (não publica de verdade)"
+        type: boolean
+        default: true
+
+jobs:
+  testar:
+    name: Testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci || npm install
+
+      - name: Rodar testes
+        run: npm test
+
+  publicar:
+    name: Publicar
+    needs: testar
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # habilita procedência (provenance) no npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci || npm install
+
+      - name: Conferir se a tag bate com a versão do package.json
+        if: github.event_name == 'push'
+        run: |
+          VERSAO_PKG="$(node -p "require('./package.json').version")"
+          VERSAO_TAG="${GITHUB_REF_NAME#v}"
+          echo "package.json: $VERSAO_PKG | tag: $VERSAO_TAG"
+          if [ "$VERSAO_PKG" != "$VERSAO_TAG" ]; then
+            echo "::error::A tag ($VERSAO_TAG) não corresponde à versão do package.json ($VERSAO_PKG)."
+            echo "Use 'npm version <patch|minor|major>' para criar tag e versão juntas."
+            exit 1
+          fi
+
+      - name: Conferir se a versão já existe no npm
+        run: |
+          NOME="$(node -p "require('./package.json').name")"
+          VERSAO="$(node -p "require('./package.json').version")"
+          if npm view "$NOME@$VERSAO" version >/dev/null 2>&1; then
+            echo "::error::$NOME@$VERSAO já foi publicado. Suba a versão antes."
+            exit 1
+          fi
+          echo "$NOME@$VERSAO está livre."
+
+      - name: Simular publicação
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: npm publish --dry-run
+
+      - name: Publicar no npm
+        if: github.event_name == 'push' || !inputs.dry_run
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Resumo
+        if: always()
+        run: |
+          {
+            echo "### Publicação"
+            echo ""
+            echo "- Pacote: \`$(node -p "require('./package.json').name")\`"
+            echo "- Versão: \`$(node -p "require('./package.json').version")\`"
+            echo "- Evento: \`${{ github.event_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

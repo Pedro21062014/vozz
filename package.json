@@ -1,0 +1,70 @@
+{
+  "name": "vozz",
+  "version": "0.1.0",
+  "description": "TTS ultrarrealista em português do Brasil, 100% offline no navegador. Vozes neurais leves (~86 MB), sem API key, sem servidor, sem custo.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./g2p": {
+      "types": "./types/g2p.d.ts",
+      "default": "./src/g2p/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "types",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "test": "node --test test/",
+    "eval": "node scripts/eval-g2p.mjs",
+    "demo": "node scripts/demo-node.mjs",
+    "serve": "npx --yes serve examples -l 8080"
+  },
+  "keywords": [
+    "tts",
+    "text-to-speech",
+    "portugues",
+    "portuguese",
+    "pt-br",
+    "brazilian-portuguese",
+    "voz",
+    "sintese-de-voz",
+    "speech-synthesis",
+    "kokoro",
+    "onnx",
+    "webgpu",
+    "offline",
+    "local",
+    "browser",
+    "neural",
+    "g2p",
+    "phonemizer",
+    "ipa"
+  ],
+  "author": "vozz",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vozz-tts/vozz.git"
+  },
+  "homepage": "https://github.com/vozz-tts/vozz#readme",
+  "bugs": {
+    "url": "https://github.com/vozz-tts/vozz/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.5.1"
+  }
+}

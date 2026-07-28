@@ -1,0 +1,1597 @@
+[
+ {
+  "tipo": "palavra",
+  "texto": "a",
+  "esperado": "ˈa"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "o",
+  "esperado": "ˈɔ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "as",
+  "esperado": "ˈas"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "os",
+  "esperado": "ˈʊs"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "um",
+  "esperado": "ˈũŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "uma",
+  "esperado": "ˈumæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "de",
+  "esperado": "dʒˈy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "do",
+  "esperado": "dˈʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "da",
+  "esperado": "dˈa"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "em",
+  "esperado": "ˈeɪŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "no",
+  "esperado": "nˈʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "na",
+  "esperado": "nˈa"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "por",
+  "esperado": "pˈor"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "para",
+  "esperado": "pˈaɾæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "com",
+  "esperado": "kˈoŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sem",
+  "esperado": "sˈeɪŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "que",
+  "esperado": "kˈy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "se",
+  "esperado": "sˈy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "não",
+  "esperado": "nˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sim",
+  "esperado": "sˈiŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "casa",
+  "esperado": "kˈazæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "coisa",
+  "esperado": "kˈoɪzæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "tempo",
+  "esperado": "tˈeɪmpʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "pessoa",
+  "esperado": "pˌesˈoæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "homem",
+  "esperado": "ˈomeɪŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mulher",
+  "esperado": "muljˈɛr"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "menino",
+  "esperado": "mˌenˈinʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "menina",
+  "esperado": "mˌenˈinæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "criança",
+  "esperado": "krˌiˈɐ̃ŋsæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "gente",
+  "esperado": "ʒˈeɪŋtʃy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "povo",
+  "esperado": "pˈovʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mundo",
+  "esperado": "mˈũŋdʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "vida",
+  "esperado": "vˈidæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "morte",
+  "esperado": "mˈɔɾətʃy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "água",
+  "esperado": "ˈaɡwæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "terra",
+  "esperado": "tˈɛxæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "fogo",
+  "esperado": "fˈoɡʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ar",
+  "esperado": "ˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sol",
+  "esperado": "sˈɔl"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "lua",
+  "esperado": "lˈuæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "estrela",
+  "esperado": "ˌestrˈelæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "céu",
+  "esperado": "sˈɛʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mar",
+  "esperado": "mˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "rio",
+  "esperado": "xˈiʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "praia",
+  "esperado": "prˈaɪæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "campo",
+  "esperado": "kˈɐ̃mpʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cidade",
+  "esperado": "sˌidˈadʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "rua",
+  "esperado": "xˈuæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "praça",
+  "esperado": "prˈasæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "porta",
+  "esperado": "pˈɔɾətæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "janela",
+  "esperado": "ʒˌænˈɛlæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mesa",
+  "esperado": "mˈezæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cadeira",
+  "esperado": "kˌadˈeɪɾæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cama",
+  "esperado": "kˈɐ̃mæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "livro",
+  "esperado": "lˈivrʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "papel",
+  "esperado": "papˈɛʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "caneta",
+  "esperado": "kˌænˈetæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "lápis",
+  "esperado": "lˈapis"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "carro",
+  "esperado": "kˈaxʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "moto",
+  "esperado": "mˈɔtʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ônibus",
+  "esperado": "ˈonibus"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "trem",
+  "esperado": "trˈeɪŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "avião",
+  "esperado": "ˌaviˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "navio",
+  "esperado": "navˈiʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "comida",
+  "esperado": "kˌomˈidæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "bebida",
+  "esperado": "bˌebˈidæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "pão",
+  "esperado": "pˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "leite",
+  "esperado": "lˈeɪtʃy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "café",
+  "esperado": "kafˈɛ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "arroz",
+  "esperado": "axˈos"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "feijão",
+  "esperado": "feɪʒˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "carne",
+  "esperado": "kˈaɾəny"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "peixe",
+  "esperado": "pˈeɪʃy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "fruta",
+  "esperado": "frˈutæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "banana",
+  "esperado": "bˌænˈɐ̃næ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "maçã",
+  "esperado": "masˈɐ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "laranja",
+  "esperado": "lˌaɾˈɐ̃ŋʒæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "trabalho",
+  "esperado": "trˌabˈaljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "escola",
+  "esperado": "ˌeskˈɔlæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "faculdade",
+  "esperado": "fˌakuwdˈadʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "professor",
+  "esperado": "prˌofesˈor"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "aluno",
+  "esperado": "ˌalˈunʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "médico",
+  "esperado": "mˈɛdʒikʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "enfermeira",
+  "esperado": "ˌeɪŋfeɾəmˈeɪɾæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "advogado",
+  "esperado": "ˌadvoɡˈadʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "juiz",
+  "esperado": "ʒuˈis"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "polícia",
+  "esperado": "pˌolˈisjæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "amor",
+  "esperado": "æmˈor"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ódio",
+  "esperado": "ˈɔdʒjʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "medo",
+  "esperado": "mˈedʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "raiva",
+  "esperado": "xˈaɪvæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "alegria",
+  "esperado": "ˌaleɡrˈiæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "tristeza",
+  "esperado": "trˌistˈezæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "saudade",
+  "esperado": "sˌaʊdˈadʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "esperança",
+  "esperado": "ˌespeɾˈɐ̃ŋsæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "fé",
+  "esperado": "fˈɛ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sorte",
+  "esperado": "sˈɔɾətʃy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "azar",
+  "esperado": "azˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "grande",
+  "esperado": "ɡrˈɐ̃ŋdʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "pequeno",
+  "esperado": "pˌekˈenʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "alto",
+  "esperado": "ˈaʊtʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "baixo",
+  "esperado": "bˈaɪʃʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "gordo",
+  "esperado": "ɡˈoɾədʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "magro",
+  "esperado": "mˈaɡrʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "bonito",
+  "esperado": "bˌonˈitʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "feio",
+  "esperado": "fˈeɪʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "novo",
+  "esperado": "nˈovʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "velho",
+  "esperado": "vˈɛljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "jovem",
+  "esperado": "ʒˈɔveɪŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "antigo",
+  "esperado": "ˌɐ̃ŋtʃˈiɡʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "bom",
+  "esperado": "bˈoŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mau",
+  "esperado": "mˈaʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "melhor",
+  "esperado": "meljˈɔr"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "pior",
+  "esperado": "piˈɔr"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "maior",
+  "esperado": "maɪˈɔr"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "menor",
+  "esperado": "menˈɔr"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "muito",
+  "esperado": "mwˈiŋtʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "pouco",
+  "esperado": "pˈowkʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mais",
+  "esperado": "mˈaɪs"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "menos",
+  "esperado": "mˈenʊs"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "todo",
+  "esperado": "tˈodʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "nada",
+  "esperado": "nˈadæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "falar",
+  "esperado": "falˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dizer",
+  "esperado": "dʒizˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "fazer",
+  "esperado": "fazˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ser",
+  "esperado": "sˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "estar",
+  "esperado": "estˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ter",
+  "esperado": "tˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "haver",
+  "esperado": "avˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ir",
+  "esperado": "ˈir"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "vir",
+  "esperado": "vˈir"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dar",
+  "esperado": "dˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ver",
+  "esperado": "vˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "saber",
+  "esperado": "sabˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "poder",
+  "esperado": "podˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "querer",
+  "esperado": "keɾˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dever",
+  "esperado": "devˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "comer",
+  "esperado": "komˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "beber",
+  "esperado": "bebˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dormir",
+  "esperado": "doɾəmˈir"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "acordar",
+  "esperado": "ˌakoɾədˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "andar",
+  "esperado": "ɐ̃ŋdˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "correr",
+  "esperado": "koxˈer"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "pular",
+  "esperado": "pulˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "nadar",
+  "esperado": "nadˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "voar",
+  "esperado": "voˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cantar",
+  "esperado": "kɐ̃ŋtˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dançar",
+  "esperado": "dɐ̃ŋsˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "tocar",
+  "esperado": "tokˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "vermelho",
+  "esperado": "vˌeɾəmˈeljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "azul",
+  "esperado": "azˈuw"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "verde",
+  "esperado": "vˈeɾədʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "amarelo",
+  "esperado": "ˌæmaɾˈɛlʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "preto",
+  "esperado": "prˈetʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "branco",
+  "esperado": "brˈɐ̃ŋkʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cinza",
+  "esperado": "sˈiŋzæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "rosa",
+  "esperado": "xˈɔzæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "roxo",
+  "esperado": "xˈoʃʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "marrom",
+  "esperado": "maxˈoŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "segunda",
+  "esperado": "sˌeɡˈũŋdæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "terça",
+  "esperado": "tˈeɾəsæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "quarta",
+  "esperado": "kwˈaɾətæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "quinta",
+  "esperado": "kˈiŋtæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sexta",
+  "esperado": "sˈestæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sábado",
+  "esperado": "sˈabædʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "domingo",
+  "esperado": "dˌomˈiŋɡʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "janeiro",
+  "esperado": "ʒˌænˈeɪɾʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "fevereiro",
+  "esperado": "fˌeveɾˈeɪɾʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "março",
+  "esperado": "mˈaɾəsʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "abril",
+  "esperado": "abrˈiʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "maio",
+  "esperado": "mˈaɪʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "junho",
+  "esperado": "ʒˈũɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "julho",
+  "esperado": "ʒˈuljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "agosto",
+  "esperado": "ˌaɡˈostʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "setembro",
+  "esperado": "sˌetˈeɪmbrʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "outubro",
+  "esperado": "ˌowtˈubrʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "novembro",
+  "esperado": "nˌovˈeɪmbrʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dezembro",
+  "esperado": "dˌezˈeɪmbrʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "coração",
+  "esperado": "kˌoɾasˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "razão",
+  "esperado": "xazˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "nação",
+  "esperado": "nasˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "canção",
+  "esperado": "kɐ̃ŋsˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "informação",
+  "esperado": "ˌiŋfoɾəmasˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "educação",
+  "esperado": "ˌedukasˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "população",
+  "esperado": "pˌopulasˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "situação",
+  "esperado": "sˌituasˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "filho",
+  "esperado": "fˈiljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "filha",
+  "esperado": "fˈiljæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "olho",
+  "esperado": "ˈɔljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "milho",
+  "esperado": "mˈiljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "joelho",
+  "esperado": "ʒˌoˈeljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "espelho",
+  "esperado": "ˌespˈeljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "conselho",
+  "esperado": "kˌoŋsˈeljʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "vinho",
+  "esperado": "vˈiɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sonho",
+  "esperado": "sˈoɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "banho",
+  "esperado": "bˈɐ̃ɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "tenho",
+  "esperado": "tˈeɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "venho",
+  "esperado": "vˈeɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ganho",
+  "esperado": "ɡˈɐ̃ɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "caminho",
+  "esperado": "kˌæmˈiɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "carinho",
+  "esperado": "kˌaɾˈiɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "vizinho",
+  "esperado": "vˌizˈiɲʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "guerra",
+  "esperado": "ɡˈɛxæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "bairro",
+  "esperado": "bˈaɪxʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "socorro",
+  "esperado": "sˌokˈoxʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cachorro",
+  "esperado": "kˌaʃˈoxʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ferro",
+  "esperado": "fˈɛxʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "barro",
+  "esperado": "bˈaxʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "brasil",
+  "esperado": "brazˈiʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "brasileiro",
+  "esperado": "brˌazilˈeɪɾʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "português",
+  "esperado": "pˌoɾətuɡˈes"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "portuguesa",
+  "esperado": "pˌoɾətuɡˈezæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "espanhol",
+  "esperado": "ˌespɐ̃ɲˈɔl"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "francês",
+  "esperado": "frɐ̃ŋsˈes"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "inglês",
+  "esperado": "iŋɡlˈes"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "alemão",
+  "esperado": "ˌalemˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "japonês",
+  "esperado": "ʒˌaponˈes"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "computador",
+  "esperado": "kˌomputadˈor"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "telefone",
+  "esperado": "tˌelefˈony"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "celular",
+  "esperado": "sˌelulˈar"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "internet",
+  "esperado": "ˌiŋteɾənˈɛtʃ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "programa",
+  "esperado": "prˌoɡrˈɐ̃mæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sistema",
+  "esperado": "sˌistˈemæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "arquivo",
+  "esperado": "ˌaɾəkˈivʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "possível",
+  "esperado": "pˌosˈiveʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "impossível",
+  "esperado": "ˌimposˈiveʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "difícil",
+  "esperado": "dʒˌifˈisiʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "fácil",
+  "esperado": "fˈasiʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "útil",
+  "esperado": "ˈutʃiʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "rápido",
+  "esperado": "xˈapidʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "lento",
+  "esperado": "lˈeɪŋtʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "simples",
+  "esperado": "sˈimplys"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "história",
+  "esperado": "ˌistˈɔɾjæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "memória",
+  "esperado": "mˌemˈɔɾjæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "vitória",
+  "esperado": "vˌitˈɔɾjæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "glória",
+  "esperado": "ɡlˈɔɾjæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "fábrica",
+  "esperado": "fˈabrikæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "música",
+  "esperado": "mˈuzikæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "lógica",
+  "esperado": "lˈɔʒikæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "prática",
+  "esperado": "prˈatʃikæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "exemplo",
+  "esperado": "ˌezˈeɪmplʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "exato",
+  "esperado": "ˌezˈatʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "exame",
+  "esperado": "ˌezˈɐ̃my"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "texto",
+  "esperado": "tˈestʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "próximo",
+  "esperado": "prˈɔsimʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "máximo",
+  "esperado": "mˈasimʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "táxi",
+  "esperado": "tˈaksi"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "caixa",
+  "esperado": "kˈaɪʃæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "hoje",
+  "esperado": "ˈoʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ontem",
+  "esperado": "ˈoŋteɪŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "amanhã",
+  "esperado": "ˌæmɐ̃ɲˈɐ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "agora",
+  "esperado": "ˌaɡˈɔɾæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "depois",
+  "esperado": "depˈoɪs"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "antes",
+  "esperado": "ˈɐ̃ŋtʃys"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "sempre",
+  "esperado": "sˈeɪmpry"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "nunca",
+  "esperado": "nˈũŋkæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ainda",
+  "esperado": "ˌaˈiŋdæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "já",
+  "esperado": "ʒˈa"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "aqui",
+  "esperado": "akˈi"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ali",
+  "esperado": "alˈi"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "lá",
+  "esperado": "lˈa"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "onde",
+  "esperado": "ˈoŋdʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "quando",
+  "esperado": "kwˈɐ̃ŋdʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "como",
+  "esperado": "kˈomʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "quem",
+  "esperado": "kˈeɪŋ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "qual",
+  "esperado": "kwˈaʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "quanto",
+  "esperado": "kwˈɐ̃ŋtʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "porque",
+  "esperado": "pˈoɾəky"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "obrigado",
+  "esperado": "ˌobriɡˈadʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "obrigada",
+  "esperado": "ˌobriɡˈadæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "desculpa",
+  "esperado": "dˌeskˈuwpæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "favor",
+  "esperado": "favˈor"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "licença",
+  "esperado": "lˌisˈeɪŋsæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "parabéns",
+  "esperado": "pˌaɾabˈeɪŋs"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "feliz",
+  "esperado": "felˈis"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "triste",
+  "esperado": "trˈistʃy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cansado",
+  "esperado": "kˌɐ̃ŋsˈadʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "animado",
+  "esperado": "ˌænimˈadʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "calmo",
+  "esperado": "kˈaʊmʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "nervoso",
+  "esperado": "nˌeɾəvˈozʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "tranquilo",
+  "esperado": "trˌɐ̃ŋkwˈilʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "primeiro",
+  "esperado": "prˌimˈeɪɾʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "segundo",
+  "esperado": "sˌeɡˈũŋdʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "terceiro",
+  "esperado": "tˌeɾəsˈeɪɾʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "quarto",
+  "esperado": "kwˈaɾətʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "quinto",
+  "esperado": "kˈiŋtʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "último",
+  "esperado": "ˈultʃimʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "noite",
+  "esperado": "nˈoɪtʃy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "tarde",
+  "esperado": "tˈaɾədʒy"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "manhã",
+  "esperado": "mɐ̃ɲˈɐ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dia",
+  "esperado": "dʒˈiæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "semana",
+  "esperado": "sˌemˈɐ̃næ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mês",
+  "esperado": "mˈes"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "ano",
+  "esperado": "ˈɐ̃nʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "século",
+  "esperado": "sˈɛkulʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "cabeça",
+  "esperado": "kˌabˈesæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "braço",
+  "esperado": "brˈasʊ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "perna",
+  "esperado": "pˈɛɾənæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "mão",
+  "esperado": "mˈɐ̃ʊ̃"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "pé",
+  "esperado": "pˈɛ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "boca",
+  "esperado": "bˈokæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "nariz",
+  "esperado": "naɾˈis"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "orelha",
+  "esperado": "ˌoɾˈeljæ"
+ },
+ {
+  "tipo": "palavra",
+  "texto": "dente",
+  "esperado": "dˈeɪŋtʃy"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Olá, tudo bem com você?",
+  "esperado": "olˈa tˈudʊ bˈeɪŋ koŋ vosˈe"
+ },
+ {
+  "tipo": "frase",
+  "texto": "O rato roeu a roupa do rei de Roma.",
+  "esperado": "ʊ xˈatʊ xoˈeʊ a xˈowpæ dʊ xˈeɪ dʒy xˈomæ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Hoje o dia está muito bonito aqui em São Paulo.",
+  "esperado": "ˈoʒj ʊ dʒˈiæ estˌa mwˈiŋtʊ bˌonˈitw akˈi ˈeɪŋ sɐ̃ʊ̃ pˈaʊlʊ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Eu gosto de programar em JavaScript no navegador.",
+  "esperado": "eʊ ɡˈɔstʊ dʒy prˌoɡræmˈaɾ ˈeɪŋ ʒˈavæ skrˈiptʃ nʊ nˌaveɡadˈor"
+ },
+ {
+  "tipo": "frase",
+  "texto": "A inteligência artificial mudou o mundo da tecnologia.",
+  "esperado": "a ˌiŋteliʒˈeɪŋsjæ ˌaɾətʃifˌisiˈaʊ mudˈow ʊ mˈũŋdʊ da tˌeknoloʒˈiæ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Meu nome é Dora e eu falo português do Brasil.",
+  "esperado": "meʊ nˈomj ɛ dˈɔɾæ i eʊ fˈalʊ pˌoɾətuɡˈez dʊ brazˈiʊ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Vamos almoçar juntos amanhã de manhã?",
+  "esperado": "vˌɐ̃mʊz ˌaʊmosˈar ʒˈũŋtʊz ˌæmɐ̃ɲˈɐ̃ dʒy mɐ̃ɲˈɐ̃"
+ },
+ {
+  "tipo": "frase",
+  "texto": "O trabalho dele é muito importante para a empresa.",
+  "esperado": "ʊ trˌabˈaljʊ dˌely ɛ mwˈiŋtw ˌimpoɾətˈɐ̃ŋtʃy pˌaɾæ a ˌeɪmprˈezæ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "As crianças brincam felizes no parque da cidade.",
+  "esperado": "as krˌiˈɐ̃ŋsæz brˈiŋkɐ̃ʊ̃ fˌelˈizyz nʊ pˈaɾəky da sˌidˈadʒy"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Preciso comprar pão, leite e café no mercado.",
+  "esperado": "prˌesˈizʊ komprˈar pˈɐ̃ʊ̃ lˈeɪtʃj i kafˈɛ nʊ mˌeɾəkˈadʊ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Ela trabalha como professora numa escola pública.",
+  "esperado": "ˌɛlæ trˌabˈaljæ kˌomʊ prˌofesˈoɾæ nˌumæ ˌeskˈɔlæ pˈublikæ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Não consigo acreditar que já é sexta-feira!",
+  "esperado": "nˌɐ̃ʊ̃ kˌoŋsˈiɡw ˌakredʒitˈar ky ʒˈa ɛ sˈestæfˈeɪɾæ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "A música brasileira é conhecida no mundo inteiro.",
+  "esperado": "a mˈuzikæ brˌazilˈeɪɾæ ɛ kˌoɲesˈidæ nʊ mˈũŋdw ˌiŋtˈeɪɾʊ"
+ },
+ {
+  "tipo": "frase",
+  "texto": "Você poderia me ajudar com esse problema, por favor?",
+  "esperado": "vosˌe pˌodeɾˈiæ mj ˌaʒudˈar koŋ ˌesi prˌoblˈemæ por favˈor"
+ },
+ {
+  "tipo": "frase",
+  "texto": "O coração dela bateu forte naquele momento.",
+  "esperado": "ʊ kˌoɾasˈɐ̃ʊ̃ dˌɛlæ batˈeʊ fˈɔɾətʃy nˌakˈely mˌomˈeɪŋtʊ"
+ }
+]

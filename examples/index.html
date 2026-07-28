@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>vozz — TTS pt-BR 100% offline no navegador</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --linha: #2a3038;
+    --txt: #e6edf3; --sec: #8b949e; --ac: #2ea043; --ac2: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px; min-height: 100vh; background: var(--bg); color: var(--txt);
+    font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: -.5px; }
+  h1 span { color: var(--ac2); }
+  .sub { color: var(--sec); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--linha); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  label { display: block; font-size: 13px; color: var(--sec); margin-bottom: 6px; font-weight: 500; }
+  textarea, select, input {
+    width: 100%; background: #0d1117; color: var(--txt); border: 1px solid var(--linha);
+    border-radius: 8px; padding: 10px 12px; font: inherit; resize: vertical;
+  }
+  textarea:focus, select:focus { outline: 2px solid var(--ac); border-color: transparent; }
+  .linha { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+  .linha > div { flex: 1; min-width: 150px; }
+  button {
+    background: var(--ac); color: #fff; border: 0; border-radius: 8px; padding: 11px 22px;
+    font: 600 15px/1 inherit; cursor: pointer; margin-top: 16px;
+  }
+  button:hover:not(:disabled) { background: var(--ac2); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .barra { height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; margin-top: 14px; display: none; }
+  .barra.on { display: block; }
+  .barra i { display: block; height: 100%; width: 0; background: var(--ac2); transition: width .2s; }
+  .log { font: 12px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--sec); margin-top: 10px; white-space: pre-wrap; }
+  .ipa { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #79c0ff; word-break: break-word; }
+  audio { width: 100%; margin-top: 14px; }
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tag { background: #1f6feb22; color: #79c0ff; border: 1px solid #1f6feb44; border-radius: 100px; padding: 3px 11px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>voz<span>z</span></h1>
+  <p class="sub">TTS ultrarrealista em português do Brasil — roda 100% no seu navegador.</p>
+  <div class="tags">
+    <span class="tag">sem API key</span>
+    <span class="tag">sem servidor</span>
+    <span class="tag">sem custo</span>
+    <span class="tag">WebGPU + WASM</span>
+    <span class="tag">~86 MB</span>
+  </div>
+
+  <div class="card">
+    <label for="texto">Texto</label>
+    <textarea id="texto" rows="4">Olá! Eu sou a Dora. Esta voz é gerada no seu próprio dispositivo, sem enviar nada para a internet. São 14h30 e a temperatura é de 23°C.</textarea>
+
+    <div class="linha">
+      <div>
+        <label for="voz">Voz</label>
+        <select id="voz">
+          <option value="dora">Dora — feminina</option>
+          <option value="alex">Alex — masculina</option>
+          <option value="santa">Santa — masculina grave</option>
+        </select>
+      </div>
+      <div>
+        <label for="vel">Velocidade — <b id="velTxt">1.0</b>×</label>
+        <input id="vel" type="range" min="0.5" max="2" step="0.1" value="1" />
+      </div>
+    </div>
+
+    <button id="btn">Gerar áudio</button>
+    <div class="barra" id="barra"><i id="preenche"></i></div>
+    <div class="log" id="log"></div>
+    <audio id="player" controls hidden></audio>
+  </div>
+
+  <div class="card">
+    <label>Fonemas gerados (IPA)</label>
+    <div class="ipa" id="ipa">—</div>
+  </div>
+</div>
+
+<script type="module">
+// Em produção: import { Vozz } from "vozz";
+import { Vozz } from "../src/index.js";
+
+const $ = (id) => document.getElementById(id);
+const log = (m) => { $("log").textContent = m; };
+
+$("vel").oninput = (e) => { $("velTxt").textContent = Number(e.target.value).toFixed(1); };
+
+// Mostra o IPA em tempo real: o G2P é puro JS e não depende do modelo.
+const atualizarIPA = () => {
+  try { $("ipa").textContent = Vozz.fonemizar($("texto").value) || "—"; }
+  catch { $("ipa").textContent = "—"; }
+};
+$("texto").oninput = atualizarIPA;
+atualizarIPA();
+
+let tts = null;
+
+$("btn").onclick = async () => {
+  const btn = $("btn");
+  btn.disabled = true;
+  try {
+    if (!tts) {
+      $("barra").classList.add("on");
+      log("Baixando o modelo (só na primeira vez; depois fica em cache)...");
+      tts = await Vozz.carregar({
+        aoProgredir: (p) => {
+          if (p.progresso != null) {
+            $("preenche").style.width = `${Math.round(p.progresso * 100)}%`;
+            log(`${p.status} ${p.arquivo ?? ""} — ${Math.round(p.progresso * 100)}%`);
+          }
+        },
+      });
+      $("barra").classList.remove("on");
+      log(`Modelo pronto (backend: ${tts.dispositivo}, precisão: ${tts.precisao}).`);
+    }
+
+    const t0 = performance.now();
+    log("Sintetizando...");
+    const audio = await tts.falar($("texto").value, {
+      voz: $("voz").value,
+      velocidade: Number($("vel").value),
+    });
+    const dt = (performance.now() - t0) / 1000;
+
+    const player = $("player");
+    player.src = audio.paraURL();
+    player.hidden = false;
+    player.play();
+
+    log(`Pronto: ${audio.duracao.toFixed(2)}s de áudio gerados em ${dt.toFixed(2)}s `
+      + `(${(audio.duracao / dt).toFixed(1)}× tempo real, backend ${tts.dispositivo}).`);
+  } catch (e) {
+    log(`Erro: ${e.message}`);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>
