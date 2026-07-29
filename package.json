@@ -1,6 +1,6 @@
 {
   "name": "@pedrobef/vozz",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "TTS ultrarrealista em português do Brasil, 100% offline no navegador. Vozes neurais leves (~86 MB), sem API key, sem servidor, sem custo.",
   "type": "module",
   "main": "./src/index.js",
