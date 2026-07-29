@@ -103,6 +103,21 @@ externa), use `npm run build:pages -- --com-modelo`.
 O arquivo `pages/_headers` já traz `COOP`/`COEP`, que liberam WASM
 multi-thread e aceleram a inferência. Sem eles funciona igual, só mais devagar.
 
+### Backend de inferência
+
+O `dispositivo` padrão é `"auto"`. Como o modelo é quantizado em int8, o
+pacote escolhe **WASM**: o backend WebGPU do onnxruntime-web não implementa
+`ConvInteger` nem `DynamicQuantizeLinear`, e a sessão falharia ao ser criada.
+
+A detecção é automática — não há nada a configurar. Para forçar:
+
+```js
+await Piper.carregar({ dispositivo: "wasm" });  // padrão para modelos int8
+```
+
+WebGPU só acelera modelos em fp32/fp16. Se você quantizar uma versão fp16 do
+Piper, o pacote passa a usar a GPU sozinho.
+
 ### Servindo o modelo de outro lugar
 
 ```js

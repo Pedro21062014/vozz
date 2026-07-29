@@ -174,6 +174,12 @@ ou aponte `urlRuntime` para um host acessível.
 
 **Em Node** — instale `onnxruntime-node`: lá não há import por URL.
 
+**"no available backend found" / erro ao criar a sessão** — resolvido na
+0.2.3. O modelo Piper é quantizado em int8 e usa `ConvInteger` e
+`DynamicQuantizeLinear`, operadores que o backend WebGPU não implementa; o
+pacote agora detecta isso e usa WASM automaticamente. Se você fixou
+`dispositivo: "webgpu"` na mão, remova a opção ou troque por `"wasm"`.
+
 **Content-Security-Policy** — se a sua CSP restringe origens, libere
 `https://cdn.jsdelivr.net` em `script-src` e `connect-src`, ou hospede o
 runtime e o modelo no próprio domínio.

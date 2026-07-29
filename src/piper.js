@@ -91,6 +91,48 @@ async function baixar(url, { aoProgredir, usarCache = true, rotulo = "" } = {}) 
   return buf.buffer;
 }
 
+/**
+ * Operadores de quantização inteira que o backend WebGPU não implementa.
+ *
+ * O WebGPU do onnxruntime-web é voltado a operações em ponto flutuante.
+ * Modelos quantizados em int8 — como este Piper — usam `ConvInteger` e
+ * `DynamicQuantizeLinear`, que não têm kernel WebGPU: a criação da sessão
+ * falha com "no available backend found".
+ *
+ * Verificado na lista de operadores do onnxruntime v1.20.1
+ * (js/web/lib/wasm/jsep/webgpu/op-resolve-rules.ts): `Conv` e `MatMul`
+ * existem, mas `ConvInteger`, `MatMulInteger` e `DynamicQuantizeLinear` não.
+ */
+const OPS_SEM_WEBGPU = ["ConvInteger", "MatMulInteger", "DynamicQuantizeLinear"];
+
+/**
+ * Detecta se o modelo é quantizado em inteiros, lendo os nomes de operador
+ * direto do protobuf. Não é um parser completo de ONNX — basta procurar as
+ * strings, que aparecem literalmente no arquivo.
+ *
+ * @param {ArrayBuffer} buffer
+ * @returns {string|null} operador incompatível encontrado, ou null
+ */
+function detectarQuantizacaoInteira(buffer) {
+  // Só o início do arquivo já contém o grafo com os nomes dos operadores.
+  // Comparamos bytes diretamente: decodificar 4 MB para texto levava ~100 ms,
+  // enquanto a busca binária resolve em poucos milissegundos.
+  const dados = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 4 << 20));
+  for (const op of OPS_SEM_WEBGPU) {
+    const alvo = new Uint8Array(op.length);
+    for (let i = 0; i < op.length; i++) alvo[i] = op.charCodeAt(i);
+    const primeiro = alvo[0];
+    const limite = dados.length - alvo.length;
+    for (let i = 0; i <= limite; i++) {
+      if (dados[i] !== primeiro) continue;
+      let k = 1;
+      while (k < alvo.length && dados[i + k] === alvo[k]) k++;
+      if (k === alvo.length) return op;
+    }
+  }
+  return null;
+}
+
 /** Detecta o melhor backend disponível. */
 async function escolherDispositivo(pref) {
   if (pref && pref !== "auto") return pref;
@@ -156,27 +198,48 @@ export class Piper {
 
     aoProgredir?.({ status: "iniciando", progresso: 1, recebido: 0, total: 0, arquivo: "sessão" });
 
-    const opcoesSessao = {
-      executionProviders: alvo === "webgpu" ? ["webgpu", "wasm"] : ["wasm"],
+    // Se o modelo for quantizado em int8, o WebGPU não consegue criar a
+    // sessão: faltam kernels para ConvInteger e DynamicQuantizeLinear.
+    // Detectamos antes de tentar, para não desperdiçar uma inicialização
+    // que sempre falharia — e avisamos no console em vez de falhar em
+    // silêncio, já que o usuário pediu WebGPU explicitamente.
+    let alvoFinal = alvo;
+    const opIncompativel = alvo === "webgpu" ? detectarQuantizacaoInteira(modeloBuf) : null;
+    if (opIncompativel) {
+      alvoFinal = "wasm";
+      if (dispositivo === "webgpu") {
+        console.warn(
+          `[vozz] WebGPU não suporta "${opIncompativel}" (modelo quantizado em int8). ` +
+          `Usando WASM. Para acelerar, use um modelo em fp32/fp16.`,
+        );
+      }
+    }
+
+    /** Cria a sessão com um conjunto de provedores. */
+    const criar = (provedores) => ort.InferenceSession.create(modeloBuf, {
+      executionProviders: provedores,
       graphOptimizationLevel: "all",
-    };
+    });
 
     let sessao;
     try {
-      sessao = await ort.InferenceSession.create(modeloBuf, opcoesSessao);
+      // WebGPU sempre com WASM na lista: o onnxruntime distribui os nós
+      // não suportados para o segundo provedor em vez de abortar.
+      sessao = await criar(alvoFinal === "webgpu" ? ["webgpu", "wasm"] : ["wasm"]);
     } catch (e) {
-      // WebGPU ainda não cobre todos os operadores; cai para WASM.
-      if (alvo === "webgpu") {
-        sessao = await ort.InferenceSession.create(modeloBuf, {
-          executionProviders: ["wasm"], graphOptimizationLevel: "all",
-        });
-        return new Piper(sessao, config, ort, { dispositivo: "wasm" });
+      if (alvoFinal !== "wasm") {
+        // Última tentativa: WASM puro, que implementa todos os operadores.
+        sessao = await criar(["wasm"]);
+        alvoFinal = "wasm";
+      } else {
+        throw new Error(
+          `[vozz] Falha ao criar a sessão de inferência: ${e?.message ?? e}`,
+        );
       }
-      throw e;
     }
 
     aoProgredir?.({ status: "pronto", progresso: 1, recebido: 0, total: 0 });
-    return new Piper(sessao, config, ort, { dispositivo: alvo });
+    return new Piper(sessao, config, ort, { dispositivo: alvoFinal });
   }
 
   /**
