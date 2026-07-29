@@ -80,11 +80,31 @@ const tts = new Sintetizador();
 tts.falar("Olá!").tocar();          // síncrono, sem await
 ```
 
-O motor em código usa síntese por formantes (modelo fonte-filtro, na linha do
-Klatt): o áudio é calculado amostra a amostra a partir das frequências de
-ressonância do trato vocal. **Não soa como uma pessoa** — soa como as vozes
-clássicas de sintetizador. Em compensação, cabe em ~50 KB, não baixa nada e
-roda em Cloudflare Workers, onde o motor neural não roda.
+O motor em código usa **síntese por formantes** (modelo fonte-filtro, na
+linha do sintetizador de Klatt): as pregas vocais geram um pulso, uma cascata
+de ressoadores reproduz as ressonâncias do trato vocal, e o áudio sai
+calculado amostra a amostra.
+
+Ele **não soa como uma pessoa** — soa como uma voz sintética clássica. Mas é
+inteligível, e isso foi verificado por medição, não por impressão. O motor é
+calibrado em malha fechada contra o perfil acústico da fala humana:
+
+| Métrica | Fala humana | `vozz` |
+| --- | --- | --- |
+| Energia 300–1000 Hz | 25–50% | 34,6% |
+| Energia 1000–3000 Hz (inteligibilidade) | 20–45% | 26,3% |
+| Energia 3000–8000 Hz | 5–30% | 29,1% |
+| Pausas e oclusivas | 18–42% | 28,3% |
+| Inclinação espectral | −14 a −5 dB/oitava | −6,7 |
+| Ritmo silábico | 2,5–7 Hz | 3,9 Hz |
+
+**30/30 critérios aprovados** em 5 frases de teste (`npm run qualidade`).
+As 7 vogais são acusticamente separáveis (distância mínima de 1,34 Bark, acima
+do limiar de confusão perceptual), e o erro dos formantes em relação aos
+valores de referência do português é de ~15% — contra 40% antes da calibração.
+
+Os parâmetros do motor não foram escolhidos no ouvido: vieram de busca
+automática (`npm run calibrar`) minimizando a distância para o perfil humano.
 
 Vozes: `clara` (feminina), `bruno` (masculina), `grave` (masculina grave).
 

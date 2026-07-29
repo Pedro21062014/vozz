@@ -32,7 +32,10 @@
     "test": "node --test test/*.test.js",
     "eval": "node scripts/eval-g2p.mjs",
     "demo": "node scripts/demo-node.mjs",
-    "serve": "npx --yes serve examples -l 8080"
+    "serve": "npx --yes serve examples -l 8080",
+    "qualidade": "node scripts/qualidade.mjs",
+    "calibrar": "node scripts/calibrar.mjs",
+    "calibrar-vogais": "node scripts/calibrar-vogais.mjs"
   },
   "keywords": [
     "tts",

@@ -293,3 +293,140 @@ test("velocidade e entonação afetam o resultado", async () => {
   assert.ok(rapido.duracao < normal.duracao * 0.75,
     `velocidade não encurtou: ${normal.duracao.toFixed(2)}s -> ${rapido.duracao.toFixed(2)}s`);
 });
+
+/* -------------------- qualidade acústica do sintetizador -------------------- */
+
+/**
+ * Estes testes protegem as propriedades acústicas conquistadas por
+ * calibração. Sem eles, um ajuste inocente em qualquer ganho volta a
+ * degradar a inteligibilidade sem que ninguém perceba.
+ */
+
+/** Energia relativa por banda de frequência (DFT simples, sem dependências). */
+function bandasEnergia(amostras, taxa) {
+  const N = 1 << Math.floor(Math.log2(Math.min(amostras.length, 32768)));
+  const re = new Float64Array(N), im = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    re[i] = amostras[i] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (N - 1)));
+  }
+  // FFT iterativa (Cooley-Tukey).
+  for (let i = 1, j = 0; i < N; i++) {
+    let bit = N >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= N; len <<= 1) {
+    const ang = (-2 * Math.PI) / len;
+    for (let i = 0; i < N; i += len) {
+      for (let k = 0; k < len / 2; k++) {
+        const wr = Math.cos(ang * k), wi = Math.sin(ang * k);
+        const ur = re[i + k], ui = im[i + k];
+        const vr = re[i + k + len / 2] * wr - im[i + k + len / 2] * wi;
+        const vi = re[i + k + len / 2] * wi + im[i + k + len / 2] * wr;
+        re[i + k] = ur + vr; im[i + k] = ui + vi;
+        re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
+      }
+    }
+  }
+  const faixas = { grave: 0, medio: 0, agudo: 0 };
+  let total = 0;
+  for (let k = 1; k < N / 2; k++) {
+    const f = (k * taxa) / N;
+    const m = Math.hypot(re[k], im[k]);
+    total += m;
+    if (f >= 300 && f < 1000) faixas.grave += m;
+    else if (f >= 1000 && f < 3000) faixas.medio += m;
+    else if (f >= 3000 && f < 8000) faixas.agudo += m;
+  }
+  if (!total) return { grave: 0, medio: 0, agudo: 0 };
+  return {
+    grave: (100 * faixas.grave) / total,
+    medio: (100 * faixas.medio) / total,
+    agudo: (100 * faixas.agudo) / total,
+  };
+}
+
+test("distribuição espectral compatível com fala humana", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const audio = new Sintetizador().falar(
+    "A raposa marrom saltou sobre o cachorro preguiçoso na tarde de domingo.",
+  );
+  const b = bandasEnergia(audio.amostras, audio.taxa);
+
+  // Faixas medidas em fala humana natural. A banda média (1-3 kHz) é a que
+  // carrega a inteligibilidade: se ela desaparece, a fala vira murmúrio.
+  assert.ok(b.grave >= 20 && b.grave <= 55, `300-1000Hz fora da faixa: ${b.grave.toFixed(1)}%`);
+  assert.ok(b.medio >= 15, `1000-3000Hz baixo demais (inteligibilidade): ${b.medio.toFixed(1)}%`);
+  assert.ok(b.agudo <= 38, `3000-8000Hz alto demais (estridente): ${b.agudo.toFixed(1)}%`);
+});
+
+test("proporção de silêncio típica de fala contínua", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const audio = new Sintetizador().falar("Preciso comprar pão, leite e café no mercado hoje.");
+  const janela = Math.floor(audio.taxa * 0.02);
+  const env = [];
+  for (let i = 0; i + janela < audio.amostras.length; i += janela) {
+    let s = 0;
+    for (let k = 0; k < janela; k++) s += audio.amostras[i + k] ** 2;
+    env.push(Math.sqrt(s / janela));
+  }
+  const max = Math.max(...env);
+  const silencio = (100 * env.filter((e) => e < 0.1 * max).length) / env.length;
+  // Pausas e oclusivas produzem silêncio; nem demais (entrecortado) nem de
+  // menos (sem ritmo silábico).
+  assert.ok(silencio >= 12 && silencio <= 48, `silêncio fora do natural: ${silencio.toFixed(1)}%`);
+});
+
+test("vogais são acusticamente distinguíveis entre si", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const tts = new Sintetizador();
+  // Se as vogais convergirem para o mesmo espectro, nenhuma palavra é
+  // compreensível. Comparamos o perfil de bandas de cada uma.
+  const perfis = {};
+  for (const v of ["a", "i", "u"]) {
+    const audio = tts.falarIPA(v.repeat(6));
+    perfis[v] = bandasEnergia(audio.amostras, audio.taxa);
+  }
+  const dist = (x, y) =>
+    Math.abs(x.grave - y.grave) + Math.abs(x.medio - y.medio) + Math.abs(x.agudo - y.agudo);
+
+  assert.ok(dist(perfis.a, perfis.i) > 8, `[a] e [i] espectralmente iguais: ${dist(perfis.a, perfis.i).toFixed(1)}`);
+  assert.ok(dist(perfis.a, perfis.u) > 8, `[a] e [u] espectralmente iguais: ${dist(perfis.a, perfis.u).toFixed(1)}`);
+  assert.ok(dist(perfis.i, perfis.u) > 8, `[i] e [u] espectralmente iguais: ${dist(perfis.i, perfis.u).toFixed(1)}`);
+});
+
+test("fricativas sibilantes têm assinaturas distintas ([s] vs [ʃ])", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const tts = new Sintetizador();
+  // Contraste essencial do português: "sapato" vs "chapéu".
+  const centroide = (ipa) => {
+    const a = tts.falarIPA(ipa);
+    const n = Math.floor(a.taxa * 0.06);
+    const b = bandasEnergia(a.amostras.slice(0, n), a.taxa);
+    return b.agudo - b.medio; // [s] concentra agudo; [ʃ] puxa para o médio
+  };
+  const s = centroide("sasasa");
+  const sh = centroide("ʃaʃaʃa");
+  assert.ok(s - sh > 5, `[s] e [ʃ] pouco contrastados: ${s.toFixed(1)} vs ${sh.toFixed(1)}`);
+});
+
+test("entonação de pergunta difere da de afirmação", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const tts = new Sintetizador();
+  const afirma = tts.falar("Você vem hoje.");
+  const pergunta = tts.falar("Você vem hoje?");
+  // Uma pergunta termina com F0 subindo; a diferença aparece na energia
+  // do trecho final.
+  const finalRms = (a) => {
+    const ini = Math.floor(a.amostras.length * 0.75);
+    let s = 0;
+    for (let i = ini; i < a.amostras.length; i++) s += a.amostras[i] ** 2;
+    return Math.sqrt(s / (a.amostras.length - ini));
+  };
+  assert.notEqual(
+    finalRms(afirma).toFixed(3),
+    finalRms(pergunta).toFixed(3),
+    "pergunta e afirmação produziram o mesmo contorno final",
+  );
+});

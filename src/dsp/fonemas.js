@@ -19,19 +19,19 @@
 export const FONEMAS = {
   /* ---------------- vogais orais ---------------- */
   //        F1    F2    F3
-  a:  { f1: 700, f2: 1350, f3: 2600, tipo: "vogal", dur: 105 },
+  a:  { f1: 770, f2: 1384, f3: 2600, tipo: "vogal", dur: 105 },
   ɐ:  { f1: 620, f2: 1400, f3: 2600, tipo: "vogal", dur: 80 },
-  æ:  { f1: 620, f2: 1450, f3: 2600, tipo: "vogal", dur: 70 },
-  ɛ:  { f1: 550, f2: 1900, f3: 2650, tipo: "vogal", dur: 100 },
-  e:  { f1: 420, f2: 2100, f3: 2700, tipo: "vogal", dur: 100 },
-  i:  { f1: 300, f2: 2300, f3: 2900, tipo: "vogal", dur: 95 },
+  æ:  { f1: 645, f2: 1496, f3: 2600, tipo: "vogal", dur: 70 },
+  ɛ:  { f1: 570, f2: 1932, f3: 2650, tipo: "vogal", dur: 100 },
+  e:  { f1: 434, f2: 2470, f3: 2700, tipo: "vogal", dur: 100 },
+  i:  { f1: 283, f2: 2662, f3: 2900, tipo: "vogal", dur: 95 },
   ɪ:  { f1: 350, f2: 2150, f3: 2800, tipo: "vogal", dur: 60 },
-  ɔ:  { f1: 560, f2: 950,  f3: 2550, tipo: "vogal", dur: 100 },
+  ɔ:  { f1: 582, f2: 963,  f3: 2550, tipo: "vogal", dur: 100 },
   o:  { f1: 430, f2: 800,  f3: 2550, tipo: "vogal", dur: 100 },
-  u:  { f1: 320, f2: 720,  f3: 2450, tipo: "vogal", dur: 95 },
-  ʊ:  { f1: 380, f2: 900,  f3: 2500, tipo: "vogal", dur: 60 },
+  u:  { f1: 262, f2: 693,  f3: 2450, tipo: "vogal", dur: 95 },
+  ʊ:  { f1: 399, f2: 801,  f3: 2500, tipo: "vogal", dur: 60 },
   ə:  { f1: 500, f2: 1500, f3: 2500, tipo: "vogal", dur: 55 },
-  y:  { f1: 340, f2: 2150, f3: 2800, tipo: "vogal", dur: 60 },
+  y:  { f1: 342, f2: 2900, f3: 2800, tipo: "vogal", dur: 60 },
 
   /* ---------------- vogais nasais ---------------- */
   // A nasalidade vem do par polo/zero em `nasal`, não de formantes diferentes.

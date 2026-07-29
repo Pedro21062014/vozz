@@ -110,3 +110,58 @@ export class PassaAlta {
   }
   zerar() { this.x1 = 0; this.y1 = 0; }
 }
+
+/**
+ * Filtro biquad genérico (Robert Bristow-Johnson cookbook).
+ *
+ * Usado para modelagem espectral final: um realce suave na região de F2/F3
+ * (a faixa da inteligibilidade) e um corte nos agudos, que no modelo de
+ * formantes tendem a ficar acima do natural.
+ */
+export class Biquad {
+  constructor() {
+    this.b0 = 1; this.b1 = 0; this.b2 = 0; this.a1 = 0; this.a2 = 0;
+    this.x1 = 0; this.x2 = 0; this.y1 = 0; this.y2 = 0;
+  }
+
+  /** Realce/corte em sino centrado em `freq`, com ganho em dB. */
+  pico(taxa, freq, q, ganhoDb) {
+    const A = Math.pow(10, ganhoDb / 40);
+    const w = 2 * Math.PI * freq / taxa;
+    const alpha = Math.sin(w) / (2 * q);
+    const cos = Math.cos(w);
+    const a0 = 1 + alpha / A;
+    this.b0 = (1 + alpha * A) / a0;
+    this.b1 = (-2 * cos) / a0;
+    this.b2 = (1 - alpha * A) / a0;
+    this.a1 = (-2 * cos) / a0;
+    this.a2 = (1 - alpha / A) / a0;
+    return this;
+  }
+
+  /** Prateleira de agudos: atenua (ou realça) tudo acima de `freq`. */
+  shelfAlto(taxa, freq, ganhoDb) {
+    const A = Math.pow(10, ganhoDb / 40);
+    const w = 2 * Math.PI * freq / taxa;
+    const cos = Math.cos(w), sin = Math.sin(w);
+    const alpha = sin / 2 * Math.sqrt((A + 1 / A) * (1 / 0.9 - 1) + 2);
+    const raiz = 2 * Math.sqrt(A) * alpha;
+    const a0 = (A + 1) - (A - 1) * cos + raiz;
+    this.b0 = A * ((A + 1) + (A - 1) * cos + raiz) / a0;
+    this.b1 = -2 * A * ((A - 1) + (A + 1) * cos) / a0;
+    this.b2 = A * ((A + 1) + (A - 1) * cos - raiz) / a0;
+    this.a1 = 2 * ((A - 1) - (A + 1) * cos) / a0;
+    this.a2 = ((A + 1) - (A - 1) * cos - raiz) / a0;
+    return this;
+  }
+
+  processar(x) {
+    const y = this.b0 * x + this.b1 * this.x1 + this.b2 * this.x2
+            - this.a1 * this.y1 - this.a2 * this.y2;
+    this.x2 = this.x1; this.x1 = x;
+    this.y2 = this.y1; this.y1 = y;
+    return y;
+  }
+
+  zerar() { this.x1 = this.x2 = this.y1 = this.y2 = 0; }
+}
