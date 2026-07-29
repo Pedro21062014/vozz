@@ -1,0 +1,17 @@
+# Cabeçalhos do Cloudflare Pages.
+
+# COOP/COEP liberam WASM multi-thread e SharedArrayBuffer, o que acelera
+# bastante a inferência. Não são obrigatórios: sem eles o onnxruntime-web
+# cai para execução de thread única e continua funcionando.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  X-Content-Type-Options: nosniff
+
+# O modelo é imutável (o nome do arquivo identifica a versão): cache longo.
+/modelo/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/vozz/*
+  Cache-Control: public, max-age=3600

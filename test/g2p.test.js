@@ -430,3 +430,70 @@ test("entonação de pergunta difere da de afirmação", async () => {
     "pergunta e afirmação produziram o mesmo contorno final",
   );
 });
+
+/* ---------------------------- motor Piper ---------------------------- */
+
+test("tokenização do Piper segue o formato esperado pelo modelo", async () => {
+  const cfg = JSON.parse(readFileSync(
+    new URL("../pt_BR-faber-medium-quantized.onnx.json", import.meta.url), "utf8"));
+  const mapa = cfg.phoneme_id_map;
+  const pad = mapa["_"][0];
+
+  // Reproduz idsDeFonemas sem carregar o runtime ONNX (que é pesado).
+  const ids = (ipa) => {
+    const out = [mapa["^"][0], pad];
+    for (const ch of ipa.normalize("NFD")) {
+      const e = mapa[ch];
+      if (e) out.push(e[0], pad);
+    }
+    out.push(mapa["$"][0]);
+    return out;
+  };
+
+  const seq = ids(fonemizar("Olá, tudo bem?"));
+  assert.equal(seq[0], mapa["^"][0], "falta o símbolo de início");
+  assert.equal(seq[1], pad, "falta o separador após o início");
+  assert.equal(seq.at(-1), mapa["$"][0], "falta o símbolo de fim");
+  // O separador entre fonemas é obrigatório no Piper: sem ele o
+  // alinhamento interno do VITS sai errado e a fala fica arrastada.
+  for (let i = 3; i < seq.length - 1; i += 2) {
+    assert.equal(seq[i], pad, `separador ausente na posição ${i}`);
+  }
+});
+
+test("G2P cobre o vocabulário do modelo Piper", () => {
+  // Se o G2P emitir um símbolo que o modelo não conhece, aquele fonema é
+  // descartado e a palavra sai incompleta. Este teste garante cobertura.
+  const cfg = JSON.parse(readFileSync(
+    new URL("../pt_BR-faber-medium-quantized.onnx.json", import.meta.url), "utf8"));
+  const mapa = cfg.phoneme_id_map;
+
+  const amostras = [
+    "Olá, tudo bem com você?",
+    "O rato roeu a roupa do rei de Roma.",
+    "coração pão irmão mãe cães põe ação",
+    "trabalho filho vinho banho guerra carro exemplo táxi",
+    "Custa R$ 1.500,00 às 14h30 do dia 07/09/2025.",
+    "A raposa marrom saltou sobre o cachorro preguiçoso.",
+  ];
+
+  const fora = new Set();
+  for (const texto of amostras) {
+    for (const ch of fonemizar(texto).normalize("NFD")) {
+      if (!mapa[ch]) fora.add(ch);
+    }
+  }
+  assert.equal(fora.size, 0,
+    `símbolos que o modelo não conhece: ${[...fora].map((c) => JSON.stringify(c)).join(", ")}`);
+});
+
+test("piper.js não importa módulos do Node estaticamente", () => {
+  const codigo = readFileSync(new URL("../src/piper.js", import.meta.url), "utf8");
+  for (const m of codigo.matchAll(/^\s*import\s[^;]*from\s+["']([^"']+)["']/gm)) {
+    assert.ok(m[1].startsWith("./") || m[1].startsWith("../"),
+      `import estático de "${m[1]}" quebraria o build para navegador`);
+  }
+  // O runtime ONNX precisa ser carregado dinamicamente, senão o bundler
+  // tenta resolver onnxruntime-node no build para web.
+  assert.ok(codigo.includes("await import("), "runtime ONNX deve ser dinâmico");
+});

@@ -55,7 +55,62 @@ fonemizador com que o modelo foi treinado. O teste está em `npm test`.
 
 ---
 
-## Dois motores
+## Três motores
+
+| | `vozz/piper` ⭐ | `vozz` (Kokoro) | `vozz/sintetizador` |
+| --- | --- | --- | --- |
+| Qualidade | **voz natural pt-BR** | natural (multilíngue) | robótica |
+| Download | 18,7 MB | ~86 MB | **nenhum** |
+| Velocidade | ~2x tempo real | ~1x | **~70x** |
+| Onde roda | navegador (Pages/estático) | navegador, Node | **qualquer lugar** |
+
+**O `piper` é a recomendação para pt-BR**: modelo VITS quantizado em int8,
+treinado especificamente em português brasileiro. Baixa 18,7 MB uma vez, fica
+no cache do navegador e sintetiza no dispositivo do usuário.
+
+```js
+import { Piper } from "@pedrobef/vozz/piper";
+
+const tts = await Piper.carregar({
+  aoProgredir: (p) => console.log(`${Math.round(p.progresso * 100)}%`),
+});
+
+const audio = await tts.falar("Olá! Tudo bem com você?");
+audio.tocar();
+```
+
+Precisa do `onnxruntime-web` (peer dependency opcional):
+
+```bash
+npm i @pedrobef/vozz onnxruntime-web
+```
+
+### Deploy em Cloudflare Pages
+
+Hospedagem estática pura — não há backend, porque a síntese roda no navegador:
+
+```bash
+npm run build:pages
+npx wrangler pages deploy dist-pages --project-name vozz
+```
+
+O build sai com ~150 KB: o modelo vem do jsDelivr, que já entrega com CORS e
+cache de CDN. Para servir o modelo do próprio domínio (evitando dependência
+externa), use `npm run build:pages -- --com-modelo`.
+
+O arquivo `pages/_headers` já traz `COOP`/`COEP`, que liberam WASM
+multi-thread e aceleram a inferência. Sem eles funciona igual, só mais devagar.
+
+### Servindo o modelo de outro lugar
+
+```js
+await Piper.carregar({ cdn: "/modelo" });          // mesmo domínio
+await Piper.carregar({ urlModelo: "https://..." }); // URL completa
+```
+
+## Outros motores
+
+
 
 O pacote traz dois motores de síntese. Eles resolvem problemas diferentes:
 

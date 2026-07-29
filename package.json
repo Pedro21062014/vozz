@@ -19,13 +19,18 @@
     "./sintetizador": {
       "types": "./types/sintetizador.d.ts",
       "default": "./src/sintetizador.js"
+    },
+    "./piper": {
+      "types": "./types/piper.d.ts",
+      "default": "./src/piper.js"
     }
   },
   "files": [
     "src",
     "types",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "pages"
   ],
   "sideEffects": false,
   "scripts": {
@@ -35,7 +40,9 @@
     "serve": "npx --yes serve examples -l 8080",
     "qualidade": "node scripts/qualidade.mjs",
     "calibrar": "node scripts/calibrar.mjs",
-    "calibrar-vogais": "node scripts/calibrar-vogais.mjs"
+    "calibrar-vogais": "node scripts/calibrar-vogais.mjs",
+    "build:pages": "node scripts/build-pages.mjs",
+    "pages": "node scripts/build-pages.mjs && npx --yes serve dist-pages -l 8080"
   },
   "keywords": [
     "tts",
@@ -73,5 +80,13 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.5.1"
+  },
+  "peerDependencies": {
+    "onnxruntime-web": ">=1.17.0"
+  },
+  "peerDependenciesMeta": {
+    "onnxruntime-web": {
+      "optional": true
+    }
   }
 }
