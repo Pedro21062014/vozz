@@ -201,3 +201,33 @@ test("resolução de vozes e aliases", () => {
   assert.equal(listarVozes().length, 3);
   assert.throws(() => resolverVoz("inexistente"), /não existe/);
 });
+
+/* --------------------- compatibilidade com navegador --------------------- */
+
+test("nenhum módulo do Node é importado estaticamente (quebraria bundlers web)", () => {
+  // Um `import ... from "node:fs"` literal faz Vite/webpack/esbuild falharem
+  // ao compilar para o navegador, que é o alvo principal do pacote.
+  const arquivos = [
+    "../src/index.js", "../src/audio.js", "../src/voices.js", "../src/splitter.js",
+    "../src/g2p/index.js", "../src/g2p/normalize.js", "../src/g2p/numbers.js",
+    "../src/g2p/lexicon.js",
+  ];
+  for (const rel of arquivos) {
+    const codigo = readFileSync(new URL(rel, import.meta.url), "utf8");
+    const estatico = /^\s*import\s[^;]*from\s+["'](node:|fs|path|os|crypto)["']/m.test(codigo);
+    assert.equal(estatico, false, `${rel} importa módulo do Node de forma estática`);
+    const dinamicoLiteral = /import\(\s*["']node:[^"']+["']\s*\)/.test(codigo);
+    assert.equal(dinamicoLiteral, false, `${rel} tem import() com literal "node:..." — use especificador montado em runtime`);
+  }
+});
+
+test("o subpath /g2p não depende de nada externo", () => {
+  const arquivos = ["../src/g2p/index.js", "../src/g2p/normalize.js", "../src/g2p/numbers.js", "../src/g2p/lexicon.js"];
+  for (const rel of arquivos) {
+    const codigo = readFileSync(new URL(rel, import.meta.url), "utf8");
+    for (const m of codigo.matchAll(/^\s*import\s[^;]*from\s+["']([^"']+)["']/gm)) {
+      assert.ok(m[1].startsWith("./") || m[1].startsWith("../"),
+        `${rel} importa "${m[1]}" — o G2P deve ser 100% autocontido`);
+    }
+  }
+});

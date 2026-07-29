@@ -196,6 +196,22 @@ import { fonemizar, silabificar } from "@pedrobef/vozz/g2p";
 **Bundlers.** O pacote é ESM puro. Vite/Next/Webpack funcionam direto. Em
 projetos com SSR, carregue no cliente: `const { Vozz } = await import("@pedrobef/vozz")`.
 
+**Dependências nativas (`onnxruntime-node`, `sharp`).** Elas aparecem na árvore
+do `npm ls` porque vêm dentro do `@huggingface/transformers`, mas **não vão para
+o bundle do navegador**: o transformers.js usa *exports condicionais* e resolve
+para a build web, marcando esses módulos como ignorados. Verificado com esbuild
+em `--platform=browser` — o bundle sai com `onnxruntime-node (ignored)` e
+`sharp (ignored)`, sem binário nativo.
+
+**Cloudflare Workers / edge.** O runtime de edge não tem WebGPU nem WASM
+threads, então a *síntese* não roda lá — ela é feita no dispositivo do usuário,
+que é justamente a proposta do pacote. O que roda perfeitamente no edge é o
+fonemizador, que é JS puro e não importa nada:
+
+```js
+import { fonemizar } from "@pedrobef/vozz/g2p"; // zero dependências
+```
+
 **COOP/COEP.** Não são obrigatórios. Ative-os apenas se quiser WASM
 multi-thread (mais velocidade):
 

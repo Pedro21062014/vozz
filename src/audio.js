@@ -83,8 +83,12 @@ export class Audio {
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       return;
     }
-    const { writeFile } = await import("node:fs/promises");
-    await writeFile(caminho, Buffer.from(this.paraWav()));
+    // O especificador é montado em runtime de propósito: assim bundlers de
+    // navegador (Vite, webpack, esbuild) não tentam resolver "node:fs/promises"
+    // em tempo de build, o que quebraria a compilação para a web.
+    const modulo = "node:fs" + "/promises";
+    const { writeFile } = await import(/* @vite-ignore */ /* webpackIgnore: true */ modulo);
+    await writeFile(caminho, new Uint8Array(this.paraWav()));
   }
 
   /** Concatena vários trechos, com pausa opcional entre eles. */
