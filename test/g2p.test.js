@@ -493,7 +493,50 @@ test("piper.js não importa módulos do Node estaticamente", () => {
     assert.ok(m[1].startsWith("./") || m[1].startsWith("../"),
       `import estático de "${m[1]}" quebraria o build para navegador`);
   }
-  // O runtime ONNX precisa ser carregado dinamicamente, senão o bundler
-  // tenta resolver onnxruntime-node no build para web.
-  assert.ok(codigo.includes("await import("), "runtime ONNX deve ser dinâmico");
+  // O runtime ONNX não pode aparecer em nenhum import analisável
+  // estaticamente: bundlers (esbuild, wrangler, webpack) seguem esses
+  // especificadores em build-time e travam ao tentar empacotar o
+  // onnxruntime-web dentro de um Cloudflare Worker.
+  assert.ok(!/import\s*\(\s*["']onnxruntime/.test(codigo),
+    "onnxruntime não pode ser import() com literal — use carregamento opaco");
+  assert.ok(codigo.includes("new Function"),
+    "o runtime deve ser carregado de forma opaca ao bundler");
+});
+
+test("subpaths de edge não arrastam dependências pesadas", () => {
+  // Um projeto em Cloudflare Workers importa /g2p ou /sintetizador; se
+  // algum deles puxar onnxruntime ou @huggingface, o build do Worker
+  // falha ou estoura o limite de tamanho.
+  const proibidos = ["onnxruntime", "@huggingface", "sharp"];
+  const arquivos = [
+    "../src/g2p/index.js", "../src/g2p/normalize.js", "../src/g2p/numbers.js",
+    "../src/g2p/lexicon.js", "../src/sintetizador.js", "../src/splitter.js",
+    "../src/audio.js", "../src/dsp/trato.js", "../src/dsp/filtros.js",
+    "../src/dsp/fontes.js", "../src/dsp/fonemas.js",
+  ];
+  for (const rel of arquivos) {
+    const codigo = readFileSync(new URL(rel, import.meta.url), "utf8");
+    for (const p of proibidos) {
+      assert.ok(!codigo.includes(p), `${rel} referencia "${p}" — quebraria o edge`);
+    }
+  }
+});
+
+test("Piper expõe usarRuntime para bundlers restritivos", async () => {
+  const mod = await import("../src/piper.js");
+  assert.equal(typeof mod.usarRuntime, "function");
+  assert.equal(typeof mod.Piper.usarRuntime, "function");
+  // Injetar um runtime falso deve ser aceito sem tocar na rede.
+  const falso = { InferenceSession: { create: async () => ({}) }, Tensor: class {} };
+  assert.equal(mod.Piper.usarRuntime(falso), mod.Piper);
+  mod.usarRuntime(null); // limpa para não afetar outros testes
+});
+
+test("nenhum módulo toca em globais de navegador ao ser importado", async () => {
+  // Se um módulo acessar window/document no topo, o import quebra no SSR
+  // (Next.js, Nuxt, SvelteKit) e no edge.
+  for (const rel of ["../src/g2p/index.js", "../src/sintetizador.js",
+                     "../src/piper.js", "../src/audio.js", "../src/splitter.js"]) {
+    await assert.doesNotReject(() => import(rel), `${rel} falhou ao importar sem DOM`);
+  }
 });

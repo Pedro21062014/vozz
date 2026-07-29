@@ -108,6 +108,32 @@ await Piper.carregar({ cdn: "/modelo" });          // mesmo domínio
 await Piper.carregar({ urlModelo: "https://..." }); // URL completa
 ```
 
+### Compatibilidade com plataformas
+
+Verificado com builds reais (esbuild) e execução no `workerd`, o runtime de
+produção do Cloudflare:
+
+| | Navegador | Cloudflare Workers / Pages Functions | Node / SSR |
+| --- | --- | --- | --- |
+| `vozz/g2p` | ✅ | ✅ | ✅ |
+| `vozz/sintetizador` | ✅ | ✅ | ✅ |
+| `vozz/piper` | ✅ | ✅ importa; síntese no cliente | ✅ |
+
+Nenhum módulo toca em `window` ao ser importado, então o pacote é seguro em
+SSR (Next.js, Nuxt, SvelteKit, Astro).
+
+Se o seu bundler bloquear o import dinâmico do runtime ONNX — o caso do
+Cloudflare Workers —, injete-o explicitamente:
+
+```js
+import { Piper } from "@pedrobef/vozz/piper";
+import * as ort from "onnxruntime-web";
+Piper.usarRuntime(ort);
+```
+
+Exemplos prontos para Next.js, Vite, Astro, Workers e Node em
+[`exemplos/README.md`](./exemplos/README.md).
+
 ## Outros motores
 
 

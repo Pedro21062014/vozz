@@ -142,6 +142,9 @@ export class Piper {
 
     const ort = await carregarRuntime();
     const alvo = await escolherDispositivo(dispositivo);
+    if (!ort?.InferenceSession) {
+      throw new Error("[vozz] Runtime ONNX inválido: falta InferenceSession.");
+    }
 
     // A config é pequena: baixa primeiro para falhar rápido se a URL estiver errada.
     const cfgBuf = await baixar(urlConfig, { aoProgredir, usarCache: cache, rotulo: "config" });
@@ -172,6 +175,18 @@ export class Piper {
 
     aoProgredir?.({ status: "pronto", progresso: 1, recebido: 0, total: 0 });
     return new Piper(sessao, config, ort, { dispositivo: alvo });
+  }
+
+  /**
+   * Injeta o runtime ONNX manualmente, quando o bundler não resolve o
+   * import dinâmico (Cloudflare Workers, alguns setups de webpack).
+   *
+   *   import * as ort from "onnxruntime-web";
+   *   Piper.usarRuntime(ort);
+   */
+  static usarRuntime(ort) {
+    usarRuntime(ort);
+    return Piper;
   }
 
   /** Texto → IPA (mesmo G2P pt-BR do restante do pacote). */
@@ -282,15 +297,62 @@ export class Piper {
   }
 }
 
-/** Carrega o onnxruntime conforme o ambiente (web ou Node). */
+/**
+ * Runtime ONNX injetado manualmente (ver `Piper.usarRuntime`).
+ * @type {any}
+ */
+let runtimeInjetado = null;
+
+/**
+ * Define o runtime ONNX explicitamente.
+ *
+ * Use quando o bundler não puder resolver o import dinâmico — por exemplo em
+ * Cloudflare Workers, ou quando você já carrega o `ort` por <script>:
+ *
+ *   import * as ort from "onnxruntime-web";
+ *   Piper.usarRuntime(ort);
+ *
+ * @param {any} ort módulo do onnxruntime
+ */
+export function usarRuntime(ort) {
+  runtimeInjetado = ort;
+}
+
+/**
+ * Carrega o runtime ONNX conforme o ambiente.
+ *
+ * O import é montado em tempo de execução e passa por `new Function`
+ * de propósito. Bundlers (esbuild, wrangler, webpack) seguem qualquer
+ * `import()` cujo especificador seja analisável estaticamente — e ao tentar
+ * empacotar o onnxruntime-web dentro de um Worker o build trava, porque a
+ * biblioteca carrega binários WASM e usa APIs que não existem no edge.
+ *
+ * Deixando o carregamento opaco, o subpath `/piper` pode ser importado em
+ * qualquer runtime; só quem chamar `carregar()` precisa do ONNX de fato.
+ */
 async function carregarRuntime() {
-  const noNavegador = typeof window !== "undefined" || typeof self !== "undefined";
-  const especificador = noNavegador ? "onnxruntime-web" : "onnxruntime-node";
+  if (runtimeInjetado) return runtimeInjetado;
+
+  // `globalThis.ort` cobre o uso via <script src="...ort.min.js">.
+  if (typeof globalThis !== "undefined" && globalThis.ort?.InferenceSession) {
+    return globalThis.ort;
+  }
+
+  const temDom = typeof window !== "undefined" && typeof document !== "undefined";
+  const especificador = temDom ? "onnxruntime-web" : "onnxruntime-node";
+
   try {
-    return await import(/* @vite-ignore */ especificador);
+    // Opaco ao bundler: o especificador só existe em runtime.
+    const importar = new Function("m", "return import(m)");
+    return await importar(especificador);
   } catch (e) {
     throw new Error(
-      `[vozz] Instale o runtime ONNX: npm i ${especificador}\n` +
+      `[vozz] Não foi possível carregar o runtime ONNX (${especificador}).\n` +
+      `  - No navegador:  npm i onnxruntime-web\n` +
+      `  - Em Node:       npm i onnxruntime-node\n` +
+      `  - Se o seu bundler bloquear imports dinâmicos, injete o runtime:\n` +
+      `        import * as ort from "onnxruntime-web";\n` +
+      `        Piper.usarRuntime(ort);\n` +
       `  (motivo: ${e?.message ?? e})`,
     );
   }

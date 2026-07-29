@@ -30,7 +30,8 @@
     "types",
     "README.md",
     "LICENSE",
-    "pages"
+    "pages",
+    "exemplos"
   ],
   "sideEffects": false,
   "scripts": {
