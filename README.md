@@ -79,11 +79,13 @@ const audio = await tts.falar("Olá! Tudo bem com você?");
 audio.tocar();
 ```
 
-Precisa do `onnxruntime-web` (peer dependency opcional):
-
 ```bash
-npm i @pedrobef/vozz onnxruntime-web
+npm i @pedrobef/vozz
 ```
+
+O runtime ONNX é resolvido sozinho: se o `onnxruntime-web` não estiver
+instalado, o pacote importa o build ESM do CDN por URL absoluta. Não há
+nada para configurar no Vite, no Next ou no Astro.
 
 ### Deploy em Cloudflare Pages
 

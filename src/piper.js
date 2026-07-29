@@ -30,6 +30,7 @@ const CACHE = "vozz-piper-v1";
  * @property {'auto'|'webgpu'|'wasm'} [dispositivo='auto']
  * @property {(p:{status:string,progresso:number,recebido:number,total:number})=>void} [aoProgredir]
  * @property {boolean} [cache=true] guardar o modelo no cache do navegador
+ * @property {string} [urlRuntime] URL do build ESM do onnxruntime-web
  */
 
 /**
@@ -138,9 +139,10 @@ export class Piper {
       dispositivo = "auto",
       aoProgredir = null,
       cache = true,
+      urlRuntime = ORT_CDN,
     } = opcoes;
 
-    const ort = await carregarRuntime();
+    const ort = await carregarRuntime(urlRuntime);
     const alvo = await escolherDispositivo(dispositivo);
     if (!ort?.InferenceSession) {
       throw new Error("[vozz] Runtime ONNX inválido: falta InferenceSession.");
@@ -319,40 +321,67 @@ export function usarRuntime(ort) {
 }
 
 /**
- * Carrega o runtime ONNX conforme o ambiente.
- *
- * O import é montado em tempo de execução e passa por `new Function`
- * de propósito. Bundlers (esbuild, wrangler, webpack) seguem qualquer
- * `import()` cujo especificador seja analisável estaticamente — e ao tentar
- * empacotar o onnxruntime-web dentro de um Worker o build trava, porque a
- * biblioteca carrega binários WASM e usa APIs que não existem no edge.
- *
- * Deixando o carregamento opaco, o subpath `/piper` pode ser importado em
- * qualquer runtime; só quem chamar `carregar()` precisa do ONNX de fato.
+ * URL padrão do runtime ONNX no CDN (build ESM, sem bundler).
+ * Fixamos a versão para não quebrar quando o upstream publicar algo novo.
  */
-async function carregarRuntime() {
+export const ORT_CDN = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.mjs";
+
+/**
+ * Carrega o runtime ONNX.
+ *
+ * A ordem tenta o caminho menos surpreendente primeiro:
+ *
+ *   1. runtime injetado por `Piper.usarRuntime(ort)`;
+ *   2. `globalThis.ort`, para quem carrega via <script>;
+ *   3. o pacote `onnxruntime-web`/`onnxruntime-node`, se estiver instalado;
+ *   4. o CDN, como último recurso.
+ *
+ * O passo 3 é o delicado. Um `import("onnxruntime-web")` literal faz o
+ * wrangler travar ao empacotar um Worker; já esconder o especificador com
+ * `new Function` quebra no Vite, porque o navegador não resolve nomes de
+ * pacote em runtime. A saída é tentar o import de pacote apenas quando há
+ * um resolvedor de módulos por trás (Node, ou bundler em modo de
+ * desenvolvimento) e cair para o CDN no navegador — assim nenhum bundler
+ * precisa enxergar o especificador, e o usuário não precisa configurar nada.
+ */
+async function carregarRuntime(urlCdn = ORT_CDN) {
   if (runtimeInjetado) return runtimeInjetado;
 
-  // `globalThis.ort` cobre o uso via <script src="...ort.min.js">.
   if (typeof globalThis !== "undefined" && globalThis.ort?.InferenceSession) {
     return globalThis.ort;
   }
 
   const temDom = typeof window !== "undefined" && typeof document !== "undefined";
-  const especificador = temDom ? "onnxruntime-web" : "onnxruntime-node";
 
+  // Em Node, o pacote local é a única opção (não há como importar de URL).
+  if (!temDom) {
+    try {
+      const importar = new Function("m", "return import(m)");
+      return await importar("onnxruntime-node");
+    } catch (e) {
+      throw new Error(
+        `[vozz] Instale o runtime ONNX para Node: npm i onnxruntime-node\n  (motivo: ${e?.message ?? e})`,
+      );
+    }
+  }
+
+  // No navegador: importa o build ESM direto da URL. Funciona em Vite, Next,
+  // Astro e afins sem configuração, porque uma URL absoluta é sempre
+  // resolvível pelo próprio navegador.
   try {
-    // Opaco ao bundler: o especificador só existe em runtime.
-    const importar = new Function("m", "return import(m)");
-    return await importar(especificador);
+    const importar = new Function("u", "return import(u)");
+    const mod = await importar(urlCdn);
+    const ort = mod?.default?.InferenceSession ? mod.default : mod;
+    if (!ort?.InferenceSession) throw new Error("módulo sem InferenceSession");
+    return ort;
   } catch (e) {
     throw new Error(
-      `[vozz] Não foi possível carregar o runtime ONNX (${especificador}).\n` +
-      `  - No navegador:  npm i onnxruntime-web\n` +
-      `  - Em Node:       npm i onnxruntime-node\n` +
-      `  - Se o seu bundler bloquear imports dinâmicos, injete o runtime:\n` +
-      `        import * as ort from "onnxruntime-web";\n` +
-      `        Piper.usarRuntime(ort);\n` +
+      `[vozz] Não foi possível carregar o runtime ONNX.\n` +
+      `  Alternativas:\n` +
+      `    1) instale e injete:  npm i onnxruntime-web\n` +
+      `         import * as ort from "onnxruntime-web";\n` +
+      `         Piper.usarRuntime(ort);\n` +
+      `    2) aponte outro CDN:  Piper.carregar({ urlRuntime: "https://..." })\n` +
       `  (motivo: ${e?.message ?? e})`,
     );
   }

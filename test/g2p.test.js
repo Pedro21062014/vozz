@@ -497,8 +497,13 @@ test("piper.js não importa módulos do Node estaticamente", () => {
   // estaticamente: bundlers (esbuild, wrangler, webpack) seguem esses
   // especificadores em build-time e travam ao tentar empacotar o
   // onnxruntime-web dentro de um Cloudflare Worker.
-  assert.ok(!/import\s*\(\s*["']onnxruntime/.test(codigo),
-    "onnxruntime não pode ser import() com literal — use carregamento opaco");
+  // O que quebra bundlers é um `import("onnxruntime-...")` que o
+  // analisador estático consiga enxergar. Dentro de `new Function` o
+  // especificador é apenas texto, invisível ao build.
+  const semComentarios = codigo.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const linhas = semComentarios.split("\n").filter((l) => !l.includes("new Function"));
+  assert.ok(!/\bimport\s*\(\s*["'`]onnxruntime/.test(linhas.join("\n")),
+    "import() com literal de onnxruntime trava o build do Worker");
   assert.ok(codigo.includes("new Function"),
     "o runtime deve ser carregado de forma opaca ao bundler");
 });
@@ -539,4 +544,26 @@ test("nenhum módulo toca em globais de navegador ao ser importado", async () =>
                      "../src/piper.js", "../src/audio.js", "../src/splitter.js"]) {
     await assert.doesNotReject(() => import(rel), `${rel} falhou ao importar sem DOM`);
   }
+});
+
+test("runtime ONNX tem URL de CDN como alternativa (não exige instalação)", async () => {
+  const mod = await import("../src/piper.js");
+  // Sem essa URL, o Vite falha ao resolver o especificador "onnxruntime-web"
+  // em runtime e o Piper fica inutilizável no navegador.
+  assert.ok(typeof mod.ORT_CDN === "string" && mod.ORT_CDN.startsWith("https://"),
+    "ORT_CDN deve ser uma URL absoluta");
+  assert.ok(mod.ORT_CDN.includes("onnxruntime-web"), "ORT_CDN deve apontar para o onnxruntime-web");
+  // Versão fixada: um "latest" quebraria o pacote sem aviso.
+  assert.ok(/@\d+\.\d+\.\d+/.test(mod.ORT_CDN), "a versão do runtime deve estar fixada na URL");
+});
+
+test("piper.js resolve o runtime sem depender do bundler", () => {
+  const codigo = readFileSync(new URL("../src/piper.js", import.meta.url), "utf8");
+  // No navegador o caminho precisa ser import por URL; import de pacote
+  // exigiria que o bundler resolvesse "onnxruntime-web", que é justamente
+  // o que falha no Vite.
+  assert.ok(codigo.includes("urlCdn") || codigo.includes("ORT_CDN"),
+    "deve haver caminho de carregamento por URL");
+  assert.ok(codigo.includes("globalThis.ort"),
+    "deve reconhecer o runtime carregado por <script>");
 });

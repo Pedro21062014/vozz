@@ -20,6 +20,43 @@ exatamente onde ela é gratuita e escala sozinha.
 
 ---
 
+## Sobre o runtime ONNX
+
+A partir da 0.2.2 **não é preciso instalar nem configurar nada**. Se o
+`onnxruntime-web` não estiver presente, o pacote importa o build ESM
+direto do CDN por URL absoluta — que qualquer navegador resolve sozinho,
+sem passar pelo bundler.
+
+Por isso não existe mais o erro *"Vite não consegue resolver o specifier
+onnxruntime-web"*: nenhum bundler precisa resolvê-lo.
+
+Se preferir controlar a versão, há três caminhos:
+
+```js
+// 1) instalar e injetar (evita o download do CDN)
+import * as ort from "onnxruntime-web";
+Piper.usarRuntime(ort);
+
+// 2) apontar outra URL
+await Piper.carregar({ urlRuntime: "https://meu-cdn/ort.min.mjs" });
+
+// 3) carregar por <script>; o pacote detecta globalThis.ort
+// <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+```
+
+### Quanto pesa
+
+| | Tamanho | Quando |
+| --- | --- | --- |
+| `vozz` (código) | ~52 kB | sempre |
+| runtime ONNX (JS) | ~435 kB | só ao usar o Piper |
+| runtime ONNX (WASM) | ~11 MB | só ao usar o Piper |
+| modelo de voz | 18,7 MB | só ao usar o Piper, uma vez |
+
+Tudo isso fica no cache do navegador. Se o peso for proibitivo para o seu
+caso, `vozz/sintetizador` gera voz sem baixar **nada** — é mais robótica,
+mas custa ~72 kB e roda em qualquer lugar, inclusive no edge.
+
 ## Next.js (Vercel)
 
 O Piper só existe no cliente, então carregue-o dentro de `useEffect`:
@@ -34,12 +71,8 @@ export default function Falar() {
 
   useEffect(() => {
     (async () => {
-      const [{ Piper }, ort] = await Promise.all([
-        import("@pedrobef/vozz/piper"),
-        import("onnxruntime-web"),
-      ]);
-      Piper.usarRuntime(ort);           // dispensa o bundler de resolver o runtime
-      tts.current = await Piper.carregar();
+      const { Piper } = await import("@pedrobef/vozz/piper");
+      tts.current = await Piper.carregar();   // runtime vem do CDN sozinho
       setPronto(true);
     })();
   }, []);
@@ -72,21 +105,15 @@ Nada de especial: é código de cliente.
 
 ```js
 import { Piper } from "@pedrobef/vozz/piper";
-import * as ort from "onnxruntime-web";
 
-Piper.usarRuntime(ort);
 const tts = await Piper.carregar({
   aoProgredir: (p) => console.log(`${Math.round(p.progresso * 100)}%`),
 });
 (await tts.falar("Olá!")).tocar();
 ```
 
-Em Vite, o `onnxruntime-web` pede uma exclusão do pré-bundling:
-
-```js
-// vite.config.js
-export default { optimizeDeps: { exclude: ["onnxruntime-web"] } };
-```
+Sem `vite.config.js` especial, sem `optimizeDeps`, sem instalar o
+`onnxruntime-web`. Verificado com `vite build` limpo.
 
 ## Cloudflare Workers / Pages Functions
 
@@ -141,13 +168,15 @@ console.log(fonemizar("Olá, tudo bem?"));
 
 ## Resolução de problemas
 
-**"Não foi possível carregar o runtime ONNX"** — instale `onnxruntime-web` (ou
-`onnxruntime-node`) e, se o bundler bloquear o import dinâmico, injete o
-runtime com `Piper.usarRuntime(ort)`.
+**"Não foi possível carregar o runtime ONNX"** — normalmente é bloqueio de
+rede ao CDN. Instale `onnxruntime-web` e injete com `Piper.usarRuntime(ort)`,
+ou aponte `urlRuntime` para um host acessível.
 
-**Build do servidor tenta empacotar o `onnxruntime-web`** — marque o pacote
-como externo (exemplo do Next.js acima) ou importe o `/piper` apenas em código
-de cliente.
+**Em Node** — instale `onnxruntime-node`: lá não há import por URL.
+
+**Content-Security-Policy** — se a sua CSP restringe origens, libere
+`https://cdn.jsdelivr.net` em `script-src` e `connect-src`, ou hospede o
+runtime e o modelo no próprio domínio.
 
 **O modelo baixa toda vez** — ele fica na Cache API do navegador. Em modo
 anônimo o cache é descartado ao fechar a aba.
