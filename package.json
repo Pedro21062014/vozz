@@ -15,7 +15,11 @@
       "types": "./types/g2p.d.ts",
       "default": "./src/g2p/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./sintetizador": {
+      "types": "./types/sintetizador.d.ts",
+      "default": "./src/sintetizador.js"
+    }
   },
   "files": [
     "src",

@@ -55,6 +55,43 @@ fonemizador com que o modelo foi treinado. O teste está em `npm test`.
 
 ---
 
+## Dois motores
+
+O pacote traz dois motores de síntese. Eles resolvem problemas diferentes:
+
+| | `vozz` (neural) | `vozz/sintetizador` (código) |
+| --- | --- | --- |
+| Qualidade | ultrarrealista | robótica, inteligível |
+| Download | ~86 MB (uma vez) | **nenhum** |
+| Dependências | `@huggingface/transformers` | **nenhuma** |
+| Velocidade | ~1x tempo real (WASM) | **~50x tempo real** |
+| Onde roda | navegador, Node | **qualquer lugar**, inclusive Workers/edge |
+| Latência inicial | segundos (baixar pesos) | **instantânea** |
+
+```js
+// Motor neural — quando a prioridade é soar humano
+import { Vozz } from "@pedrobef/vozz";
+const tts = await Vozz.carregar();
+(await tts.falar("Olá!")).tocar();
+
+// Motor em código — quando a prioridade é ser leve e rodar em qualquer lugar
+import { Sintetizador } from "@pedrobef/vozz/sintetizador";
+const tts = new Sintetizador();
+tts.falar("Olá!").tocar();          // síncrono, sem await
+```
+
+O motor em código usa síntese por formantes (modelo fonte-filtro, na linha do
+Klatt): o áudio é calculado amostra a amostra a partir das frequências de
+ressonância do trato vocal. **Não soa como uma pessoa** — soa como as vozes
+clássicas de sintetizador. Em compensação, cabe em ~50 KB, não baixa nada e
+roda em Cloudflare Workers, onde o motor neural não roda.
+
+Vozes: `clara` (feminina), `bruno` (masculina), `grave` (masculina grave).
+
+```js
+tts.falar("Bom dia!", { voz: "bruno", velocidade: 1.2, entonacao: 1.5 });
+```
+
 ## Vozes
 
 | Voz     | Gênero    | Timbre                                          |

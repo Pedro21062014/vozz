@@ -231,3 +231,65 @@ test("o subpath /g2p não depende de nada externo", () => {
     }
   }
 });
+
+/* ------------------ motor de síntese em código (formantes) ------------------ */
+
+test("sintetizador gera áudio audível sem rede neural", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const tts = new Sintetizador();
+  const audio = tts.falar("Olá, tudo bem?");
+
+  assert.ok(audio.duracao > 0.4, `duração muito curta: ${audio.duracao}s`);
+
+  let pico = 0, soma = 0;
+  for (const v of audio.amostras) { pico = Math.max(pico, Math.abs(v)); soma += v * v; }
+  const rms = Math.sqrt(soma / audio.amostras.length);
+  assert.ok(pico > 0.2, `sinal fraco demais (pico ${pico.toFixed(3)})`);
+  assert.ok(pico <= 1.0, `sinal estourado (pico ${pico.toFixed(3)})`);
+  assert.ok(rms > 0.02, `energia média baixa (rms ${rms.toFixed(4)})`);
+});
+
+test("sintetizador é determinístico", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const tts = new Sintetizador();
+  const a = tts.falar("teste de repetição");
+  const b = tts.falar("teste de repetição");
+  assert.equal(a.amostras.length, b.amostras.length);
+  // Mesma entrada deve produzir exatamente o mesmo áudio.
+  let iguais = true;
+  for (let i = 0; i < a.amostras.length; i += 97) {
+    if (Math.abs(a.amostras[i] - b.amostras[i]) > 1e-9) { iguais = false; break; }
+  }
+  assert.ok(iguais, "duas chamadas idênticas geraram áudios diferentes");
+});
+
+test("vozes do sintetizador têm timbres distintos", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const tts = new Sintetizador();
+  const clara = tts.falar("teste", { voz: "clara" });
+  const grave = tts.falar("teste", { voz: "grave" });
+  // Vozes diferentes -> durações/formas diferentes.
+  let diferenca = 0;
+  const n = Math.min(clara.amostras.length, grave.amostras.length);
+  for (let i = 0; i < n; i += 13) diferenca += Math.abs(clara.amostras[i] - grave.amostras[i]);
+  assert.ok(diferenca / (n / 13) > 0.01, "vozes soam idênticas");
+});
+
+test("sintetizador não depende de nada externo (roda em edge/Workers)", () => {
+  for (const rel of ["../src/sintetizador.js", "../src/dsp/filtros.js", "../src/dsp/fontes.js", "../src/dsp/fonemas.js"]) {
+    const codigo = readFileSync(new URL(rel, import.meta.url), "utf8");
+    for (const m of codigo.matchAll(/^\s*import\s[^;]*from\s+["']([^"']+)["']/gm)) {
+      assert.ok(m[1].startsWith("./") || m[1].startsWith("../"),
+        `${rel} importa "${m[1]}" — o motor em código deve ser autocontido`);
+    }
+  }
+});
+
+test("velocidade e entonação afetam o resultado", async () => {
+  const { Sintetizador } = await import("../src/sintetizador.js");
+  const tts = new Sintetizador();
+  const normal = tts.falar("uma frase de teste");
+  const rapido = tts.falar("uma frase de teste", { velocidade: 1.8 });
+  assert.ok(rapido.duracao < normal.duracao * 0.75,
+    `velocidade não encurtou: ${normal.duracao.toFixed(2)}s -> ${rapido.duracao.toFixed(2)}s`);
+});
