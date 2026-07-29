@@ -52,13 +52,13 @@ export const VOZES_CODIGO = Object.freeze({
  * saída e o de fala humana medida. Ver scripts/calibrar.mjs.
  */
 export const CAL = {
-  ganhoFricativa: 0.16,
-  ganhoOclusiva: 0.2,
-  tiltCorte1: 2800,
+  ganhoFricativa: 0.28,
+  ganhoOclusiva: 0.28,
+  tiltCorte1: 2000,
   tiltCorte2: 4200,
-  tiltPeso1: 1.5,
-  tiltPeso2: 1,
-  radiacao: 0.86,
+  tiltPeso1: 1.2,
+  tiltPeso2: 0.7,
+  radiacao: 0.74,
   realceF2Db: 6,
   shelfAgudoDb: -9,
 };
@@ -304,12 +304,50 @@ export function sintetizarIPA(ipa, opcoes = {}) {
     // Coarticulação: consoantes não têm formantes próprios estáveis; o que
     // o ouvido usa para identificá-las é a *transição* a partir do locus em
     // direção à vogal seguinte. Sem isso, consoantes viram ruído neutro.
-    const destino = [...a.freqs];
-    if ((ehOclusiva || ehNasal) && a.lugar && prox) {
+    // Alvos de INÍCIO e FIM do segmento.
+    //
+    // Antes havia um alvo único: os formantes chegavam nele em ~50 ms e
+    // congelavam pelo resto da vogal. Medindo "casa", F1/F2 ficavam em
+    // 874/1564 Hz por 150 ms sem variar 1 Hz — e um formante estático soa
+    // como zumbido, não como fala. Em fala real os formantes estão sempre
+    // em movimento, puxados pelos sons vizinhos.
+    const ant = alvos[k - 1];
+    const inicio = [...a.freqs];
+    const fim = [...a.freqs];
+
+    if (ehVogal) {
+      // Vogal: parte do locus da consoante anterior e caminha para o alvo,
+      // depois já se inclina em direção ao próximo som. Essa curvatura é
+      // exatamente a pista acústica que identifica a consoante.
+      if (ant && ant.lugar) {
+        const L = LOCUS[ant.lugar];
+        if (L) {
+          inicio[1] = lerp(L.f2 * voz.escalaFormante, a.freqs[1], 0.32);
+          inicio[2] = lerp(L.f3 * voz.escalaFormante, a.freqs[2], 0.45);
+        }
+      } else if (ant && ant.tipo !== "pausa") {
+        inicio[1] = lerp(ant.freqs[1], a.freqs[1], 0.45);
+        inicio[2] = lerp(ant.freqs[2], a.freqs[2], 0.55);
+      }
+      if (prox && prox.lugar) {
+        const L = LOCUS[prox.lugar];
+        if (L) {
+          fim[1] = lerp(a.freqs[1], L.f2 * voz.escalaFormante, 0.34);
+          fim[2] = lerp(a.freqs[2], L.f3 * voz.escalaFormante, 0.30);
+        }
+      } else if (prox && prox.tipo !== "pausa") {
+        fim[1] = lerp(a.freqs[1], prox.freqs[1], 0.30);
+        fim[2] = lerp(a.freqs[2], prox.freqs[2], 0.34);
+      }
+    } else if ((ehOclusiva || ehNasal) && a.lugar) {
       const L = LOCUS[a.lugar];
       if (L) {
-        destino[1] = lerp(L.f2 * voz.escalaFormante, prox.freqs[1], 0.30);
-        destino[2] = lerp(L.f3 * voz.escalaFormante, prox.freqs[2], 0.30);
+        inicio[1] = L.f2 * voz.escalaFormante;
+        inicio[2] = L.f3 * voz.escalaFormante;
+        const destinoF2 = prox ? prox.freqs[1] : a.freqs[1];
+        const destinoF3 = prox ? prox.freqs[2] : a.freqs[2];
+        fim[1] = lerp(L.f2 * voz.escalaFormante, destinoF2, 0.55);
+        fim[2] = lerp(L.f3 * voz.escalaFormante, destinoF3, 0.45);
       }
     }
 
@@ -336,13 +374,23 @@ export function sintetizarIPA(ipa, opcoes = {}) {
 
     // Velocidade de transição dos formantes: oclusivas movem rápido,
     // vogais deslizam devagar.
-    const velTransicao = ehOclusiva ? 0.30 : ehVogal ? 0.055 : 0.13;
+    // Suavização do movimento: a língua tem inércia, então o caminho entre
+    // dois alvos é uma curva em S, não uma reta nem um degrau.
+    const suavidade = ehOclusiva ? 0.55 : ehVogal ? 0.30 : 0.42;
 
     for (let s = 0; s < amostras && pos < n; s++, pos++) {
       const t = s / amostras;
 
+      // Alvo instantâneo: percorre início -> fim ao longo do segmento.
+      const cur = t < suavidade
+        ? (t / suavidade) * 0.5
+        : 0.5 + ((t - suavidade) / (1 - suavidade)) * 0.5;
+      const sMov = cur * cur * (3 - 2 * cur);
+
       for (let i = 0; i < 5; i++) {
-        cf[i] += (destino[i] - cf[i]) * velTransicao;
+        const alvoAgora = inicio[i] + (fim[i] - inicio[i]) * sMov;
+        // Filtro de 1ª ordem = inércia articulatória (sem saltos bruscos).
+        cf[i] += (alvoAgora - cf[i]) * (ehOclusiva ? 0.35 : 0.22);
         cb[i] += ((a.bandas[i] ?? 200) - cb[i]) * 0.10;
       }
       cNasal += (alvoNasal - cNasal) * 0.06;
@@ -370,7 +418,10 @@ export function sintetizarIPA(ipa, opcoes = {}) {
           const vozeado = a.voz
             ? trato.processar(glote.proxima()) * (1 - envBurst) * 0.8
             : trato.processar(ruido.proxima() * 0.10) * (1 - envBurst) * envBurst * 2;
-          amostra = explosao * 0.85 + vozeado;
+          // Burst mais forte: é a pista acústica que identifica a
+          // oclusiva. Medindo "ka", a explosão saía com 4% da amplitude
+          // da vogal e simplesmente não era ouvida.
+          amostra = explosao * 3.2 + vozeado;
         }
       } else if (ehFricativa || ehAfricada) {
         const inicio = ehAfricada ? 0.32 : 0;
@@ -398,10 +449,24 @@ export function sintetizarIPA(ipa, opcoes = {}) {
         amostra = trato.processar(exc);
       }
 
-      // Envelope de amplitude nas bordas do segmento (evita cliques).
-      const bordaAmostras = Math.max(2, Math.round(taxa * 0.004));
+      // Envelope de amplitude do segmento.
+      //
+      // Antes era só uma rampa de 4 ms nas bordas, o que deixava a vogal com
+      // amplitude constante por 140 ms — um platô que o ouvido interpreta
+      // como zumbido, não como sílaba. Vogais reais têm ataque, um pico
+      // logo após o início e decaimento gradual.
+      const bordaAmostras = Math.max(2, Math.round(taxa * 0.006));
       const rampa = Math.min(1, Math.min(s, amostras - 1 - s) / bordaAmostras);
-      const env = rampa * rampa * (3 - 2 * rampa);
+      let env = rampa * rampa * (3 - 2 * rampa);
+
+      if (ehVogal) {
+        // Curva de sílaba: sobe rápido, pico em ~25% da duração, decai.
+        const ataque = Math.min(1, t / 0.16);
+        const decaimento = 1 - 0.42 * Math.max(0, (t - 0.30) / 0.70) ** 1.4;
+        env *= (0.58 + 0.42 * ataque * ataque * (3 - 2 * ataque)) * decaimento;
+      } else if (ehNasal || a.tipo === "lateral") {
+        env *= 0.90 - 0.18 * t;
+      }
 
       // Tilt aplicado apenas aos sons vozeados: fricativas precisam manter
       // o brilho, pois é ele que distingue [s] de [f].

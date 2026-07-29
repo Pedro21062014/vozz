@@ -49,27 +49,37 @@ export class FonteGlotal {
     }
 
     const t = this.fase;
-    const Te = this.aberturaRel;          // instante de fechamento
-    const Tp = Te * this.tenso;           // pico do fluxo
-    let d = 0;
 
-    // Modelo LF: geramos a DERIVADA diretamente, em vez de derivar
-    // numericamente um fluxo suave. A diferença é decisiva — o instante de
-    // fechamento é uma descontinuidade abrupta, e é ela que produz os
-    // harmônicos altos que excitam F2 e F3. Derivar um cosseno suave
-    // atenuava tudo acima de 1 kHz em ~40 dB e as vogais ficavam
-    // indistinguíveis (sem F2, [i] e [u] soam iguais).
+    // Modelo de Liljencrants-Fant (LF) para a derivada do fluxo glotal.
+    //
+    // A forma de onda importa mais que qualquer ajuste de ganho: é ela que
+    // determina o timbre. A versão anterior descia lentamente até o mínimo e
+    // voltava com um degrau — o inverso da fisiologia, e soava como zumbido.
+    //
+    // No ciclo real:
+    //   1. abertura   — o fluxo cresce devagar (derivada positiva, suave);
+    //   2. fechamento — as pregas colidem e o fluxo é interrompido de forma
+    //      abrupta, produzindo um pico negativo curto e profundo;
+    //   3. fase fechada — retorno rápido a zero e silêncio até o próximo ciclo.
+    //
+    // É a descontinuidade do passo 2 que gera os harmônicos altos capazes de
+    // excitar F2 e F3, e portanto a inteligibilidade das vogais.
+    const Te = this.aberturaRel;          // instante do fechamento
+    const Tp = Te * this.tenso;           // pico do fluxo (antes do fechamento)
+    let d;
+
     if (t < Tp) {
-      // Abertura: derivada positiva, meio seno.
-      d = Math.sin(Math.PI * t / Tp) * 0.4;
+      // Abertura: meio seno crescente, amplitude modesta.
+      d = Math.sin((Math.PI / 2) * (t / Tp)) * 0.32;
     } else if (t < Te) {
-      // Fechamento: queda rápida e profunda até o pico negativo.
+      // Fechamento: queda acelerada até o mínimo, concentrada no fim do
+      // intervalo. O expoente controla o quanto o pulso é "tenso".
       const u = (t - Tp) / (Te - Tp);
-      d = -(Math.sin(Math.PI * u * 0.5) ** 0.55);
+      d = 0.32 * Math.cos((Math.PI / 2) * u) - Math.pow(u, 2.6) * 1.28;
     } else {
-      // Glote fechada: retorno exponencial rápido a zero.
-      const u = (t - Te) / (1 - Te);
-      d = -Math.exp(-u * 14) * 0.34;
+      // Fase fechada: recuperação exponencial rápida a partir do mínimo.
+      const u = (t - Te) / Math.max(1e-6, 1 - Te);
+      d = -0.96 * Math.exp(-u * 9);
     }
 
     this.fase += 1 / this._periodoCiclo;
