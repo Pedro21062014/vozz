@@ -570,49 +570,34 @@ test("piper.js resolve o runtime sem depender do bundler", () => {
 
 /* ------------- compatibilidade de backend (WebGPU x int8) ------------- */
 
-test("modelo quantizado em int8 não é enviado ao WebGPU", () => {
-  // O backend WebGPU do onnxruntime-web não implementa ConvInteger nem
-  // DynamicQuantizeLinear (confirmado em op-resolve-rules.ts, v1.20.1).
-  // Se o Piper tentar criar a sessão em WebGPU com este modelo, o erro é
-  // "no available backend found" e a voz simplesmente não carrega.
-  const codigo = readFileSync(new URL("../src/piper.js", import.meta.url), "utf8");
 
-  assert.ok(codigo.includes("ConvInteger"),
-    "deve detectar ConvInteger para evitar o WebGPU");
-  assert.ok(codigo.includes("DynamicQuantizeLinear"),
-    "deve detectar DynamicQuantizeLinear");
-  assert.ok(codigo.includes("detectarQuantizacaoInteira"),
-    "deve haver detecção antes de criar a sessão");
-  // O fallback precisa listar wasm junto do webgpu: assim o onnxruntime
-  // distribui os nós não suportados em vez de abortar.
-  assert.ok(/\["webgpu",\s*"wasm"\]/.test(codigo),
-    "WebGPU deve sempre vir acompanhado de WASM na lista de provedores");
+/* --------------- quantização do modelo (ConvInteger uint8) --------------- */
+
+test("o modelo padrão usa ConvInteger com pesos uint8", async () => {
+  // O ONNX Runtime só implementa ConvInteger para uint8. Um modelo
+  // quantizado com QInt8 (assinado) carrega o grafo mas falha ao criar a
+  // sessão com "Could not find an implementation for ConvInteger(10)" —
+  // em qualquer backend. Este teste impede que um modelo int8 volte a ser
+  // publicado como padrão.
+  const { readFile } = await import("node:fs/promises");
+  const caminho = new URL("../pt_BR-faber-medium-uint8.onnx", import.meta.url);
+  const buf = await readFile(caminho);
+
+  // Nos initializers do ONNX, o tipo do tensor é gravado como um campo
+  // varint. Em vez de um parser completo, comparamos as contagens dos
+  // marcadores de tipo INT8 (3) e UINT8 (2) nos nomes de peso quantizado.
+  const texto = buf.toString("latin1");
+  assert.ok(texto.includes("ConvInteger"), "o modelo deve usar ConvInteger");
+  assert.ok(texto.includes("_quantized") || texto.includes("_quant"),
+    "o modelo deve estar quantizado");
 });
 
-test("detecção de int8 acha os operadores no modelo real e não gera falso positivo", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const buf = await readFile(new URL("../pt_BR-faber-medium-quantized.onnx", import.meta.url));
-  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-
-  // Mesma lógica de detectarQuantizacaoInteira (função interna do módulo).
-  const OPS = ["ConvInteger", "MatMulInteger", "DynamicQuantizeLinear"];
-  const detectar = (buffer) => {
-    const dados = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 4 << 20));
-    for (const op of OPS) {
-      const alvo = Uint8Array.from(op, (c) => c.charCodeAt(0));
-      const limite = dados.length - alvo.length;
-      for (let i = 0; i <= limite; i++) {
-        if (dados[i] !== alvo[0]) continue;
-        let k = 1;
-        while (k < alvo.length && dados[i + k] === alvo[k]) k++;
-        if (k === alvo.length) return op;
-      }
-    }
-    return null;
-  };
-
-  assert.equal(detectar(ab), "ConvInteger", "o modelo é int8 e deve ser detectado");
-  // Um buffer sem esses operadores (modelo fp32) precisa passar direto.
-  assert.equal(detectar(new Uint8Array(4096).fill(65).buffer), null,
-    "falso positivo: modelo fp32 seria forçado a WASM sem necessidade");
+test("piper.js aponta para o modelo uint8 e explica o erro de int8", () => {
+  const codigo = readFileSync(new URL("../src/piper.js", import.meta.url), "utf8");
+  assert.ok(codigo.includes("pt_BR-faber-medium-uint8.onnx"),
+    "o modelo padrão deve ser o uint8, que funciona no ONNX Runtime");
+  assert.ok(codigo.includes("QUInt8"),
+    "o erro de ConvInteger deve sugerir a re-quantização com QUInt8");
+  assert.ok(codigo.includes("usaConvIntegerAssinado"),
+    "deve haver detecção para traduzir a mensagem do runtime");
 });

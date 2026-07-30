@@ -342,31 +342,90 @@ Se você usa uma CSP restritiva, veja *"CSP bloqueando o CDN"* abaixo.
 
 </details>
 
-<details>
-<summary><b>"no available backend found" / a sessão não é criada</b></summary>
+<details open>
+<summary><b>"Could not find an implementation for ConvInteger(10)"</b></summary>
 
 <br>
 
-Corrigido na **0.2.3**. Atualize:
+```
+[vozz] Falha ao criar a sessão de inferência: Can't create a session.
+ERROR_CODE: 9, ERROR_MESSAGE: Could not find an implementation for
+ConvInteger(10) node with name '/enc_p/encoder/attn_layers.0/conv_q/Conv_quant'
+```
+
+**Corrigido na 0.2.5.** Se você usa o modelo padrão, basta atualizar:
 
 ```bash
 npm i @pedrobef/vozz@latest
 ```
 
-**O que acontecia:** o modelo é quantizado em int8 e usa os operadores
-`ConvInteger` e `DynamicQuantizeLinear`. O backend WebGPU do
-`onnxruntime-web` é voltado a ponto flutuante e **não implementa** esses
-operadores — a sessão falhava ao ser criada.
+Se aponta para um modelo próprio (`urlModelo` / `cdn`), continue lendo.
 
-O pacote agora inspeciona o modelo e usa WASM automaticamente. Se você fixou
-o dispositivo na mão, remova a opção:
+**Por que acontece.** O ONNX Runtime implementa o operador `ConvInteger`
+somente para pesos **uint8** (inteiro sem sinal). Um modelo quantizado com
+`QuantType.QInt8` (com sinal) carrega o grafo normalmente, mas nenhum kernel
+casa com os tipos — e a sessão falha **em todos os backends**, WASM
+inclusive. Não é problema de WebGPU nem de navegador.
 
-```js
-await Piper.carregar({ dispositivo: "webgpu" });  // ❌
-await Piper.carregar();                           // ✅ detecta sozinho
+**Como corrigir.** Re-quantize a partir do modelo em fp32 usando `QUInt8`:
+
+```python
+from onnxruntime.quantization import quantize_dynamic, QuantType
+
+quantize_dynamic(
+    "pt_BR-faber-medium.onnx",        # modelo fp32 original
+    "pt_BR-faber-medium-uint8.onnx",  # saída
+    weight_type=QuantType.QUInt8,     # ← a correção; NÃO use QInt8
+)
 ```
 
-WebGPU só acelera modelos fp32/fp16.
+O arquivo de saída tem o **mesmo tamanho** (18,7 MB) e a mesma qualidade de
+áudio. Os avisos `Inference failed or unsupported type to quantize` durante
+a conversão são normais e podem ser ignorados.
+
+O fp32 original das vozes Piper está em
+[rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices).
+
+**Como saber se o seu modelo tem o problema:**
+
+```python
+import onnx
+from onnx import TensorProto
+
+m = onnx.load("seu-modelo.onnx")
+tipos = {i.name: i.data_type for i in m.graph.initializer}
+for n in m.graph.node:
+    if n.op_type == "ConvInteger":
+        for e in n.input:
+            if e in tipos:
+                print(e, "INT8 (quebra)" if tipos[e] == TensorProto.INT8 else "UINT8 (ok)")
+        break
+```
+
+Depois de re-quantizar, aponte o pacote para o novo arquivo:
+
+```js
+await Piper.carregar({ urlModelo: "/modelo/pt_BR-faber-medium-uint8.onnx" });
+```
+
+</details>
+
+<details>
+<summary><b>"no available backend found" / a sessão não é criada</b></summary>
+
+<br>
+
+Se a mensagem cita `ConvInteger`, veja o item acima — é quantização, não
+backend.
+
+Caso contrário, force o WASM, que implementa todos os operadores:
+
+```js
+await Piper.carregar({ dispositivo: "wasm" });
+```
+
+WebGPU só acelera modelos em fp32/fp16; com modelos quantizados ele repassa
+os nós ao WASM automaticamente.
 
 </details>
 

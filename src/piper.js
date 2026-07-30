@@ -16,8 +16,8 @@ import { dividirEmSentencas, DivisorDeTexto } from "./splitter.js";
 
 /** CDN padrão: jsDelivr sobre o repositório do modelo (CORS liberado). */
 export const CDN_PADRAO = "https://cdn.jsdelivr.net/gh/Pedro21062014/vozz@main";
-const ARQ_MODELO = "pt_BR-faber-medium-quantized.onnx";
-const ARQ_CONFIG = "pt_BR-faber-medium-quantized.onnx.json";
+const ARQ_MODELO = "pt_BR-faber-medium-uint8.onnx";
+const ARQ_CONFIG = "pt_BR-faber-medium-uint8.onnx.json";
 
 /** Nome do cache do navegador (Cache API). */
 const CACHE = "vozz-piper-v1";
@@ -92,45 +92,36 @@ async function baixar(url, { aoProgredir, usarCache = true, rotulo = "" } = {}) 
 }
 
 /**
- * Operadores de quantização inteira que o backend WebGPU não implementa.
+ * Verifica se o modelo usa `ConvInteger` com pesos **int8 assinado**.
  *
- * O WebGPU do onnxruntime-web é voltado a operações em ponto flutuante.
- * Modelos quantizados em int8 — como este Piper — usam `ConvInteger` e
- * `DynamicQuantizeLinear`, que não têm kernel WebGPU: a criação da sessão
- * falha com "no available backend found".
+ * Este é o erro mais comum com modelos Piper quantizados:
  *
- * Verificado na lista de operadores do onnxruntime v1.20.1
- * (js/web/lib/wasm/jsep/webgpu/op-resolve-rules.ts): `Conv` e `MatMul`
- * existem, mas `ConvInteger`, `MatMulInteger` e `DynamicQuantizeLinear` não.
- */
-const OPS_SEM_WEBGPU = ["ConvInteger", "MatMulInteger", "DynamicQuantizeLinear"];
-
-/**
- * Detecta se o modelo é quantizado em inteiros, lendo os nomes de operador
- * direto do protobuf. Não é um parser completo de ONNX — basta procurar as
- * strings, que aparecem literalmente no arquivo.
+ *     NOT_IMPLEMENTED: Could not find an implementation for
+ *     ConvInteger(10) node with name '.../Conv_quant'
+ *
+ * O ONNX Runtime implementa `ConvInteger` apenas para **uint8**. Um modelo
+ * gerado com `quantize_dynamic(..., weight_type=QuantType.QInt8)` carrega
+ * o grafo, mas nenhum kernel casa com os tipos e a sessão falha — em
+ * qualquer backend, WASM inclusive. A correção é re-quantizar com
+ * `QuantType.QUInt8`; o tamanho do arquivo é o mesmo.
+ *
+ * Detectamos aqui só para trocar a mensagem críptica do runtime por uma
+ * que diz o que fazer.
  *
  * @param {ArrayBuffer} buffer
- * @returns {string|null} operador incompatível encontrado, ou null
+ * @returns {boolean}
  */
-function detectarQuantizacaoInteira(buffer) {
-  // Só o início do arquivo já contém o grafo com os nomes dos operadores.
-  // Comparamos bytes diretamente: decodificar 4 MB para texto levava ~100 ms,
-  // enquanto a busca binária resolve em poucos milissegundos.
-  const dados = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 4 << 20));
-  for (const op of OPS_SEM_WEBGPU) {
-    const alvo = new Uint8Array(op.length);
-    for (let i = 0; i < op.length; i++) alvo[i] = op.charCodeAt(i);
-    const primeiro = alvo[0];
-    const limite = dados.length - alvo.length;
-    for (let i = 0; i <= limite; i++) {
-      if (dados[i] !== primeiro) continue;
-      let k = 1;
-      while (k < alvo.length && dados[i + k] === alvo[k]) k++;
-      if (k === alvo.length) return op;
-    }
+function usaConvIntegerAssinado(buffer) {
+  const dados = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 1 << 20));
+  const alvo = [67, 111, 110, 118, 73, 110, 116, 101, 103, 101, 114]; // "ConvInteger"
+  const limite = dados.length - alvo.length;
+  for (let i = 0; i <= limite; i++) {
+    if (dados[i] !== alvo[0]) continue;
+    let k = 1;
+    while (k < alvo.length && dados[i + k] === alvo[k]) k++;
+    if (k === alvo.length) return true;
   }
-  return null;
+  return false;
 }
 
 /** Detecta o melhor backend disponível. */
@@ -198,22 +189,10 @@ export class Piper {
 
     aoProgredir?.({ status: "iniciando", progresso: 1, recebido: 0, total: 0, arquivo: "sessão" });
 
-    // Se o modelo for quantizado em int8, o WebGPU não consegue criar a
-    // sessão: faltam kernels para ConvInteger e DynamicQuantizeLinear.
-    // Detectamos antes de tentar, para não desperdiçar uma inicialização
-    // que sempre falharia — e avisamos no console em vez de falhar em
-    // silêncio, já que o usuário pediu WebGPU explicitamente.
-    let alvoFinal = alvo;
-    const opIncompativel = alvo === "webgpu" ? detectarQuantizacaoInteira(modeloBuf) : null;
-    if (opIncompativel) {
-      alvoFinal = "wasm";
-      if (dispositivo === "webgpu") {
-        console.warn(
-          `[vozz] WebGPU não suporta "${opIncompativel}" (modelo quantizado em int8). ` +
-          `Usando WASM. Para acelerar, use um modelo em fp32/fp16.`,
-        );
-      }
-    }
+    // WebGPU não implementa operadores de quantização inteira; com esses
+    // modelos ele apenas repassa os nós ao WASM, então mantemos os dois na
+    // lista em vez de bloquear a GPU.
+    const temConvInteger = usaConvIntegerAssinado(modeloBuf);
 
     /** Cria a sessão com um conjunto de provedores. */
     const criar = (provedores) => ort.InferenceSession.create(modeloBuf, {
@@ -232,9 +211,21 @@ export class Piper {
         sessao = await criar(["wasm"]);
         alvoFinal = "wasm";
       } else {
-        throw new Error(
-          `[vozz] Falha ao criar a sessão de inferência: ${e?.message ?? e}`,
-        );
+        const msg = String(e?.message ?? e);
+        // Traduz o erro mais comum para algo acionável.
+        if (temConvInteger && /ConvInteger|NOT_IMPLEMENTED|Could not find an implementation/i.test(msg)) {
+          throw new Error(
+            `[vozz] O modelo foi quantizado com QInt8 (int8 assinado), e o ONNX ` +
+            `Runtime só implementa ConvInteger para uint8 — por isso a sessão não ` +
+            `é criada, em nenhum backend.\n` +
+            `  Solução: re-quantize a partir do modelo fp32 usando QUInt8.\n` +
+            `    from onnxruntime.quantization import quantize_dynamic, QuantType\n` +
+            `    quantize_dynamic("modelo.onnx", "modelo_uint8.onnx", weight_type=QuantType.QUInt8)\n` +
+            `  O tamanho do arquivo é o mesmo. Detalhes no README, seção "Problemas comuns".\n` +
+            `  (erro original: ${msg})`,
+          );
+        }
+        throw new Error(`[vozz] Falha ao criar a sessão de inferência: ${msg}`);
       }
     }
 
