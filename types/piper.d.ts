@@ -27,6 +27,8 @@ export interface OpcoesCarregarPiper {
   aoProgredir?: (p: ProgressoPiper) => void;
   /** Guardar o modelo no cache do navegador. Padrão: true. */
   cache?: boolean;
+  /** Threads do WASM. Padrão: 2 com COOP/COEP e 4+ núcleos, senão 1. */
+  threads?: number;
 }
 
 export interface OpcoesFalarPiper {
@@ -38,6 +40,8 @@ export interface OpcoesFalarPiper {
   ruidoW?: number;
   /** Pronúncias customizadas: `{ palavra: "IPA" }`. */
   lexico?: Record<string, string>;
+  /** Máximo de fonemas por inferência. Padrão: 360. */
+  maxFonemas?: number;
 }
 
 export interface TrechoPiper {
@@ -72,4 +76,6 @@ export declare class Piper {
 }
 
 export declare const CDN_PADRAO: string;
+/** Divide uma cadeia IPA em blocos, cortando em pausas naturais. */
+export declare function dividirIPA(ipa: string, limite?: number): string[];
 export default Piper;

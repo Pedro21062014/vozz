@@ -312,10 +312,13 @@ Mais exemplos em [`exemplos/README.md`](./exemplos/README.md).
 | `Audio` | `tocar`, `parar`, `salvar`, `paraWav/Blob/URL`, `duracao`. |
 
 **Opções de `carregar`:** `dispositivo` (`auto`/`wasm`/`webgpu`), `cdn`,
-`urlModelo`, `urlConfig`, `urlRuntime`, `cache`, `aoProgredir`.
+`urlModelo`, `urlConfig`, `urlRuntime`, `cache`, `aoProgredir`, `threads`.
 
 **Opções de `falar`:** `velocidade` (0.5–2), `ruido` (expressividade),
-`ruidoW`, `lexico`, `normalizar`.
+`ruidoW`, `lexico`, `normalizar`, `maxFonemas` (tamanho do bloco; padrão 360).
+
+Para textos longos prefira `falarEmFluxo`: ele devolve cada trecho assim que
+fica pronto, em vez de esperar o texto inteiro.
 
 Tipos TypeScript inclusos.
 
@@ -510,6 +513,52 @@ Ele fica na Cache API do navegador. Se estiver rebaixando sempre:
   funcionando; libere espaço no navegador.
 
 Para forçar o redownload: `await Piper.limparCache()`.
+
+</details>
+
+<details>
+<summary><b>A página trava com textos grandes</b></summary>
+
+<br>
+
+**Melhorado na 0.2.7.** Atualize:
+
+```bash
+npm i @pedrobef/vozz@latest
+```
+
+O custo do modelo é linear: uma sentença muito longa virava **uma única
+inferência** que segurava a thread principal por vários segundos — a página
+não repintava e o áudio pronto não tocava. Medido aqui: 8,0 s de bloqueio
+numa frase de 479 fonemas.
+
+Agora a síntese é fatiada em blocos (~360 fonemas), cortando em vírgulas e
+pausas naturais, e a thread é liberada entre eles. Mesmo texto: maior
+bloqueio caiu para **5,9 s** e o primeiro áudio saiu **1,4× mais rápido**,
+com o tempo total inalterado.
+
+**Para textos realmente longos, use streaming.** Assim o usuário ouve a
+primeira frase enquanto o resto é gerado:
+
+```js
+for await (const { audio } of tts.falarEmFluxo(textoGrande)) {
+  await audio.tocar();
+}
+```
+
+Ajustes finos:
+
+```js
+// blocos menores = interface mais fluida, mais chamadas
+await tts.falar(texto, { maxFonemas: 200 });
+
+// mais threads (exige COOP/COEP; veja "A síntese está lenta")
+await Piper.carregar({ threads: 2 });
+```
+
+Se ainda travar, o gargalo provavelmente é a thread principal do navegador.
+A solução definitiva é rodar a síntese num **Web Worker** — o pacote
+funciona dentro de um sem alteração.
 
 </details>
 

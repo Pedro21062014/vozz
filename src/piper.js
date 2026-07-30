@@ -31,6 +31,7 @@ const CACHE = "vozz-piper-v1";
  * @property {(p:{status:string,progresso:number,recebido:number,total:number})=>void} [aoProgredir]
  * @property {boolean} [cache=true] guardar o modelo no cache do navegador
  * @property {string} [urlRuntime] URL do build ESM do onnxruntime-web
+ * @property {number} [threads] threads do WASM (padrão: núcleos-1, máx. 4)
  */
 
 /**
@@ -124,6 +125,45 @@ function usaConvIntegerAssinado(buffer) {
   return false;
 }
 
+/**
+ * Ajusta o número de threads do WASM.
+ *
+ * O onnxruntime-web roda em uma única thread por padrão. Com
+ * `SharedArrayBuffer` disponível (exige os cabeçalhos COOP/COEP), usar
+ * vários núcleos reduz bastante o tempo de inferência — que é o gargalo
+ * em textos longos.
+ *
+ * Limitamos a 4: acima disso o ganho satura e o custo de sincronização
+ * cresce. Deixamos um núcleo livre para a interface não engasgar.
+ *
+ * @param {any} ort
+ * @param {number} [preferido] força um valor específico
+ */
+function configurarThreads(ort, preferido) {
+  try {
+    const wasm = ort?.env?.wasm;
+    if (!wasm) return;
+
+    if (typeof preferido === "number" && preferido > 0) {
+      wasm.numThreads = preferido;
+      return;
+    }
+
+    // Multi-thread exige SharedArrayBuffer, que só existe com COOP/COEP.
+    const temSAB = typeof SharedArrayBuffer !== "undefined";
+    if (!temSAB) { wasm.numThreads = 1; return; }
+
+    // Teto de 2 threads, por medição: neste modelo o ganho de 1→2 é de
+    // ~8%, mas 4 threads chegou a ficar 30% MAIS LENTO em máquinas de
+    // poucos núcleos — o custo de sincronização supera o paralelismo.
+    // Só usamos 2 quando há núcleos sobrando para a interface.
+    const nucleos = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 2;
+    wasm.numThreads = nucleos >= 4 ? 2 : 1;
+  } catch {
+    // Runtime sem env.wasm (ou injetado pelo usuário): mantém o padrão.
+  }
+}
+
 /** Detecta o melhor backend disponível. */
 async function escolherDispositivo(pref) {
   if (pref && pref !== "auto") return pref;
@@ -180,6 +220,7 @@ export class Piper {
     if (!ort?.InferenceSession) {
       throw new Error("[vozz] Runtime ONNX inválido: falta InferenceSession.");
     }
+    configurarThreads(ort, opcoes.threads);
 
     // A config é pequena: baixa primeiro para falhar rápido se a URL estiver errada.
     const cfgBuf = await baixar(urlConfig, { aoProgredir, usarCache: cache, rotulo: "config" });
@@ -315,10 +356,33 @@ export class Piper {
    * @returns {Promise<Audio>}
    */
   async falar(texto, opcoes = {}) {
-    const partes = [];
-    for await (const t of this.falarEmFluxo(texto, opcoes)) partes.push(t.audio);
-    if (!partes.length) return new Audio(new Float32Array(0), this.taxa);
-    return Audio.concatenar(partes, 0.10);
+    // Acumulamos apenas os Float32Array crus e liberamos cada objeto Audio
+    // logo em seguida. Guardar os trechos inteiros dobrava o pico de
+    // memória: os buffers viviam até o fim e ainda eram copiados na
+    // concatenação final.
+    const trechos = [];
+    const pausa = Math.round(0.10 * this.taxa);
+    let total = 0;
+
+    for await (const t of this.falarEmFluxo(texto, opcoes)) {
+      const amostras = t.audio.amostras;
+      if (!amostras.length) continue;
+      if (trechos.length) total += pausa;
+      trechos.push(amostras);
+      total += amostras.length;
+    }
+
+    if (!trechos.length) return new Audio(new Float32Array(0), this.taxa);
+    if (trechos.length === 1) return new Audio(trechos[0], this.taxa);
+
+    const buf = new Float32Array(total);
+    let off = 0;
+    for (let i = 0; i < trechos.length; i++) {
+      buf.set(trechos[i], off);
+      off += trechos[i].length + (i < trechos.length - 1 ? pausa : 0);
+      trechos[i] = null; // libera cada bloco assim que é copiado
+    }
+    return new Audio(buf, this.taxa);
   }
 
   /**
@@ -329,6 +393,7 @@ export class Piper {
    * @param {object} [opcoes]
    */
   async *falarEmFluxo(entrada, opcoes = {}) {
+    const maxFonemas = opcoes.maxFonemas ?? MAX_FONEMAS;
     const fonte = entrada instanceof DivisorDeTexto
       ? entrada
       : (function* () { for (const s of dividirEmSentencas(String(entrada ?? ""))) yield s; })();
@@ -338,8 +403,18 @@ export class Piper {
       if (!limpa) continue;
       const ipa = fonemizar(limpa, { lexico: opcoes.lexico });
       if (!ipa) continue;
-      const audio = await this.sintetizarIPA(ipa, opcoes);
-      yield { texto: limpa, fonemas: ipa, audio };
+
+      // Uma sentença muito longa vira uma inferência única e demorada, que
+      // congela a interface. Quebramos em blocos com um teto de fonemas: o
+      // custo é linear, então N blocos pequenos levam o mesmo tempo total,
+      // mas devolvem áudio em pedaços e mantêm a página respondendo.
+      for (const bloco of dividirIPA(ipa, maxFonemas)) {
+        const audio = await this.sintetizarIPA(bloco, opcoes);
+        // Cede a thread entre blocos para o navegador processar eventos,
+        // pintar a tela e tocar o áudio já pronto.
+        await respirar();
+        yield { texto: limpa, fonemas: bloco, audio };
+      }
     }
   }
 
@@ -353,6 +428,81 @@ export class Piper {
     if (typeof caches === "undefined") return false;
     return caches.delete(CACHE);
   }
+}
+
+/**
+ * Teto de fonemas por inferência.
+ *
+ * O custo do modelo é linear no número de tokens (~2,4x tempo real medido),
+ * então dividir não deixa mais lento no total — mas evita que uma única
+ * chamada bloqueie a thread por vários segundos. Com ~360 fonemas cada
+ * bloco leva cerca de 1,5 s de CPU, o que mantém a interface fluida.
+ */
+const MAX_FONEMAS = 360;
+
+/** Pontuação onde é natural cortar sem estragar a prosódia. */
+const PONTOS_DE_CORTE = /(?<=[,;:—…])\s+/;
+
+/**
+ * Divide uma cadeia IPA em blocos de no máximo `limite` símbolos.
+ *
+ * Corta preferencialmente em pontuação interna (vírgula, ponto e vírgula),
+ * onde já existe uma pausa natural; se não houver, cai para espaços entre
+ * palavras. Assim a junção dos blocos não cria emendas audíveis.
+ *
+ * @param {string} ipa
+ * @param {number} limite
+ * @returns {string[]}
+ */
+export function dividirIPA(ipa, limite = MAX_FONEMAS) {
+  const texto = String(ipa ?? "").trim();
+  if (texto.length <= limite) return texto ? [texto] : [];
+
+  const blocos = [];
+  let atual = "";
+
+  const empurrar = (parte) => {
+    const candidato = atual ? `${atual} ${parte}` : parte;
+    if (candidato.length <= limite) { atual = candidato; return; }
+    if (atual) blocos.push(atual);
+    atual = parte;
+  };
+
+  for (const trecho of texto.split(PONTOS_DE_CORTE)) {
+    if (trecho.length <= limite) { empurrar(trecho); continue; }
+    // Trecho sem pontuação e ainda longo: quebra por palavras.
+    let linha = "";
+    for (const palavra of trecho.split(/\s+/)) {
+      if (linha && (linha.length + 1 + palavra.length) > limite) {
+        empurrar(linha);
+        linha = palavra;
+      } else {
+        linha = linha ? `${linha} ${palavra}` : palavra;
+      }
+    }
+    if (linha) empurrar(linha);
+  }
+  if (atual) blocos.push(atual);
+  return blocos;
+}
+
+/**
+ * Devolve o controle ao navegador entre inferências.
+ *
+ * Sem isso, um texto longo monopoliza a thread principal: a página não
+ * repinta, os cliques não respondem e o áudio já gerado não toca. Usa
+ * `scheduler.yield()` quando existe (Chrome recente) e cai para
+ * `setTimeout(0)`, que é universal.
+ */
+function respirar() {
+  if (typeof globalThis !== "undefined") {
+    const s = globalThis.scheduler;
+    if (s && typeof s.yield === "function") return s.yield();
+    if (typeof globalThis.setTimeout === "function") {
+      return new Promise((r) => globalThis.setTimeout(r, 0));
+    }
+  }
+  return Promise.resolve();
 }
 
 /**

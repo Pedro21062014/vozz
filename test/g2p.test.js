@@ -669,3 +669,55 @@ test("nenhum identificador usado sem declaração em src/", async () => {
     assert.ok(declarados.has(nome), `"${nome}" é usado mas nunca declarado`);
   }
 });
+
+/* ------------------- desempenho com textos longos ------------------- */
+
+test("dividirIPA respeita o limite e não perde fonemas", async () => {
+  const { dividirIPA } = await import("../src/piper.js");
+
+  // Curto: um bloco só, sem alteração.
+  assert.deepEqual(dividirIPA("olˈa, tˈudʊ bˈeɪŋ?"), ["olˈa, tˈudʊ bˈeɪŋ?"]);
+  assert.deepEqual(dividirIPA(""), []);
+
+  // Longo: divide e mantém todos os símbolos.
+  const longo = Array(40).fill("a ĩntelidʒˈẽnsiæ aɾtifisiˈaʊ mudˈoʊ").join(", ");
+  const blocos = dividirIPA(longo, 360);
+  assert.ok(blocos.length > 1, "texto longo deve ser dividido");
+  for (const b of blocos) {
+    assert.ok(b.length <= 360, `bloco de ${b.length} excede o limite`);
+  }
+  const semEspacos = (s) => s.replace(/[\s,]+/g, "");
+  assert.equal(semEspacos(blocos.join(" ")), semEspacos(longo),
+    "a divisão não pode perder nem duplicar fonemas");
+});
+
+test("dividirIPA quebra mesmo sem pontuação interna", async () => {
+  const { dividirIPA } = await import("../src/piper.js");
+  // Sem vírgulas, o corte precisa cair para os espaços entre palavras;
+  // caso contrário uma frase longa vira uma inferência única de vários
+  // segundos, que é o que congelava a interface.
+  const semPontuacao = Array(60).fill("mudˈoʊ ʊ mˈũndʊ").join(" ");
+  const blocos = dividirIPA(semPontuacao, 200);
+  assert.ok(blocos.length > 1, "deve dividir usando espaços");
+  assert.ok(Math.max(...blocos.map((b) => b.length)) <= 200);
+});
+
+test("falar() concatena sem duplicar memória", async () => {
+  // Regressão: a versão anterior guardava todos os objetos Audio até o
+  // fim e depois copiava tudo de novo, dobrando o pico de memória num
+  // texto longo. Agora os blocos são liberados conforme são copiados.
+  const codigo = readFileSync(new URL("../src/piper.js", import.meta.url), "utf8");
+  const corpo = codigo.slice(codigo.indexOf("async falar(texto"), codigo.indexOf("async *falarEmFluxo"));
+  assert.ok(!corpo.includes("Audio.concatenar"),
+    "falar() não deve usar Audio.concatenar (faz uma cópia extra de tudo)");
+  assert.ok(corpo.includes("= null"),
+    "os blocos devem ser liberados durante a concatenação");
+});
+
+test("falarEmFluxo cede a thread entre inferências", () => {
+  // Sem ceder, o navegador não repinta nem toca o áudio já pronto:
+  // a página parece travada mesmo com a síntese progredindo.
+  const codigo = readFileSync(new URL("../src/piper.js", import.meta.url), "utf8");
+  assert.ok(codigo.includes("respirar()"), "deve haver ponto de respiro entre blocos");
+  assert.ok(codigo.includes("scheduler"), "deve usar scheduler.yield quando disponível");
+});
