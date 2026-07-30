@@ -1,263 +1,129 @@
-# vozz
+<div align="center">
 
-**TTS ultrarrealista em português do Brasil, 100% offline no navegador.**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/vozz-logo-dark.png">
+  <img src="./assets/vozz-logo-light.png" alt="vozz" width="440">
+</picture>
 
-Sem API key. Sem servidor. Sem custo por caractere. O modelo neural roda no
-próprio dispositivo do usuário — o texto nunca sai da máquina.
+**Voz neural em português do Brasil, direto no navegador.**
+
+Sem API key. Sem servidor. Sem custo por caractere.
+
+[![npm](https://img.shields.io/npm/v/@pedrobef/vozz?color=7ac943&label=npm)](https://www.npmjs.com/package/@pedrobef/vozz)
+[![CI](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml/badge.svg)](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml)
+[![licença](https://img.shields.io/badge/licença-Apache--2.0-blue.svg)](./LICENSE)
+
+</div>
+
+---
 
 ```bash
 npm install @pedrobef/vozz
 ```
 
-[![CI](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml/badge.svg)](https://github.com/Pedro21062014/vozz/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@pedrobef/vozz.svg)](https://www.npmjs.com/package/@pedrobef/vozz)
-[![licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue.svg)](./LICENSE)
-
 ```js
-import { Vozz } from "@pedrobef/vozz";
+import { Piper } from "@pedrobef/vozz/piper";
 
-const tts = await Vozz.carregar();
+const tts = await Piper.carregar();
 const audio = await tts.falar("Olá! Tudo bem com você?");
 audio.tocar();
 ```
 
-É isso. Três linhas.
+Três linhas. O texto nunca sai do dispositivo do usuário.
 
 ---
 
-## Por que este pacote existe
+## Índice
 
-Já existem bibliotecas JS que rodam o modelo Kokoro no navegador — mas **nenhuma
-delas fala português**. A razão é técnica:
+- [Por que existe](#por-que-existe)
+- [Os três motores](#os-três-motores)
+- [Começando](#começando)
+- [Receitas por framework](#receitas-por-framework)
+- [API](#api)
+- [Problemas comuns](#problemas-comuns) ← **comece por aqui se algo falhou**
+- [Quanto pesa](#quanto-pesa)
 
-O modelo não recebe letras, recebe **fonemas IPA**. Para gerar esses fonemas
-usa-se o `espeak-ng`, que em JS só existe compilado para inglês
-(`phonemizer` aceita apenas `en`, `en-us`, `en-gb`…). Sem fonemizador de
-português, as vozes `pf_dora`, `pm_alex` e `pm_santa` — que existem nos pesos
-do modelo — ficam inacessíveis. Passar texto português por um fonemizador
-inglês produz sotaque grotesco:
+---
+
+## Por que existe
+
+Já havia bibliotecas de TTS neural em JavaScript, mas **nenhuma falava
+português**. O motivo é técnico: modelos de voz não recebem letras, recebem
+**fonemas IPA**. O fonemizador disponível em JS (`phonemizer`) só traz inglês
+compilado:
+
+```js
+phonemize("Olá", "pt-br")
+// Erro: Invalid language identifier. Should be one of: en, en-us, en-gb...
+```
+
+Sem fonemizador de português, passar texto brasileiro por um motor inglês
+produz sotaque grotesco:
 
 ```
 "Eu sou a Dora"
-  fonemizador inglês →  ˌiːjˈuː sˈuː ɐ dˈoːɹə     ✗ "iiu su a dôra"
+  fonemizador inglês →  ˌiːjˈuː sˈuː ɐ dˈoːɹə     ✗  "iiu su a dôra"
   vozz               →  ˈeʊ sˈoʊ a dˈoɾæ          ✓
 ```
 
-O `vozz` resolve isso com um **conversor grafema→fonema (G2P) de português
-brasileiro escrito em JavaScript puro** — sem WASM, sem download extra, sem
-binário nativo. Ele implementa silabificação, regras de acentuação tônica,
-nasalização, palatalização de /d/ e /t/, vocalização do /l/ em coda, vibrante
-múltipla, redução de vogais átonas finais e sândi entre palavras.
+O núcleo do `vozz` é um **conversor grafema→fonema (G2P) de português
+brasileiro escrito em JavaScript puro** — sem WASM, sem binário nativo, sem
+rede. Ele implementa silabificação, acentuação tônica, nasalização,
+palatalização de /d/ e /t/, vocalização do /l/ em coda, vibrante múltipla,
+redução de vogais átonas e sândi entre palavras.
 
-**Fidelidade medida:** 94,97% contra o `espeak-ng pt-br` (PER de 5,03% em um
-corpus de 319 palavras e frases) — e o `espeak-ng pt-br` é exatamente o
-fonemizador com que o modelo foi treinado. O teste está em `npm test`.
+**Fidelidade medida:** 94,97% contra o `espeak-ng pt-br` (PER de 5,03% em
+319 palavras e frases). O teste roda em `npm test`.
 
 ---
 
-## Três motores
+## Os três motores
 
-| | `vozz/piper` ⭐ | `vozz` (Kokoro) | `vozz/sintetizador` |
+| | `piper` ⭐ | `index` (Kokoro) | `sintetizador` |
 | --- | --- | --- | --- |
-| Qualidade | **voz natural pt-BR** | natural (multilíngue) | robótica |
-| Download | 18,7 MB | ~86 MB | **nenhum** |
-| Velocidade | ~2x tempo real | ~1x | **~70x** |
-| Onde roda | navegador (Pages/estático) | navegador, Node | **qualquer lugar** |
+| **Qualidade** | voz natural pt-BR | natural, multilíngue | robótica |
+| **Download** | 18,7 MB | ~86 MB | **nada** |
+| **Velocidade** | ~2× tempo real | ~1× | **~70×** |
+| **Navegador** | ✅ | ✅ | ✅ |
+| **Workers / edge** | importa apenas¹ | ❌ | ✅ **executa** |
+| **Node / SSR** | ✅ | ✅ | ✅ |
 
-**O `piper` é a recomendação para pt-BR**: modelo VITS quantizado em int8,
-treinado especificamente em português brasileiro. Baixa 18,7 MB uma vez, fica
-no cache do navegador e sintetiza no dispositivo do usuário.
+<sub>¹ O Piper precisa de ~11 MB de WASM + 18,7 MB de modelo, o que estoura o
+limite de memória do edge. Por design, a síntese neural roda no dispositivo do
+usuário — onde é gratuita e escala sozinha.</sub>
+
+**Escolha rápida:** quer voz boa em pt-BR? `piper`. Precisa rodar dentro de um
+Worker ou não pode baixar nada? `sintetizador`. Só precisa dos fonemas
+(lipsync, legendas, visemas)? `g2p`.
+
+---
+
+## Começando
+
+### Voz neural (recomendado)
 
 ```js
 import { Piper } from "@pedrobef/vozz/piper";
 
 const tts = await Piper.carregar({
-  aoProgredir: (p) => console.log(`${Math.round(p.progresso * 100)}%`),
+  aoProgredir: (p) => {
+    if (p.status === "baixando") {
+      console.log(`${Math.round(p.progresso * 100)}% — ${p.arquivo}`);
+    }
+  },
 });
 
-const audio = await tts.falar("Olá! Tudo bem com você?");
+const audio = await tts.falar("Bom dia! Hoje são 14h30.", { velocidade: 1.1 });
 audio.tocar();
 ```
 
-```bash
-npm i @pedrobef/vozz
-```
+O modelo baixa **uma vez** e fica na Cache API do navegador. Visitas seguintes
+carregam instantaneamente.
 
-O runtime ONNX é resolvido sozinho: se o `onnxruntime-web` não estiver
-instalado, o pacote importa o build ESM do CDN por URL absoluta. Não há
-nada para configurar no Vite, no Next ou no Astro.
-
-### Deploy em Cloudflare Pages
-
-Hospedagem estática pura — não há backend, porque a síntese roda no navegador:
-
-```bash
-npm run build:pages
-npx wrangler pages deploy dist-pages --project-name vozz
-```
-
-O build sai com ~150 KB: o modelo vem do jsDelivr, que já entrega com CORS e
-cache de CDN. Para servir o modelo do próprio domínio (evitando dependência
-externa), use `npm run build:pages -- --com-modelo`.
-
-O arquivo `pages/_headers` já traz `COOP`/`COEP`, que liberam WASM
-multi-thread e aceleram a inferência. Sem eles funciona igual, só mais devagar.
-
-### Backend de inferência
-
-O `dispositivo` padrão é `"auto"`. Como o modelo é quantizado em int8, o
-pacote escolhe **WASM**: o backend WebGPU do onnxruntime-web não implementa
-`ConvInteger` nem `DynamicQuantizeLinear`, e a sessão falharia ao ser criada.
-
-A detecção é automática — não há nada a configurar. Para forçar:
+### Streaming — tocar sem esperar o texto inteiro
 
 ```js
-await Piper.carregar({ dispositivo: "wasm" });  // padrão para modelos int8
-```
-
-WebGPU só acelera modelos em fp32/fp16. Se você quantizar uma versão fp16 do
-Piper, o pacote passa a usar a GPU sozinho.
-
-### Servindo o modelo de outro lugar
-
-```js
-await Piper.carregar({ cdn: "/modelo" });          // mesmo domínio
-await Piper.carregar({ urlModelo: "https://..." }); // URL completa
-```
-
-### Compatibilidade com plataformas
-
-Verificado com builds reais (esbuild) e execução no `workerd`, o runtime de
-produção do Cloudflare:
-
-| | Navegador | Cloudflare Workers / Pages Functions | Node / SSR |
-| --- | --- | --- | --- |
-| `vozz/g2p` | ✅ | ✅ | ✅ |
-| `vozz/sintetizador` | ✅ | ✅ | ✅ |
-| `vozz/piper` | ✅ | ✅ importa; síntese no cliente | ✅ |
-
-Nenhum módulo toca em `window` ao ser importado, então o pacote é seguro em
-SSR (Next.js, Nuxt, SvelteKit, Astro).
-
-Se o seu bundler bloquear o import dinâmico do runtime ONNX — o caso do
-Cloudflare Workers —, injete-o explicitamente:
-
-```js
-import { Piper } from "@pedrobef/vozz/piper";
-import * as ort from "onnxruntime-web";
-Piper.usarRuntime(ort);
-```
-
-Exemplos prontos para Next.js, Vite, Astro, Workers e Node em
-[`exemplos/README.md`](./exemplos/README.md).
-
-## Outros motores
-
-
-
-O pacote traz dois motores de síntese. Eles resolvem problemas diferentes:
-
-| | `vozz` (neural) | `vozz/sintetizador` (código) |
-| --- | --- | --- |
-| Qualidade | ultrarrealista | robótica, inteligível |
-| Download | ~86 MB (uma vez) | **nenhum** |
-| Dependências | `@huggingface/transformers` | **nenhuma** |
-| Velocidade | ~1x tempo real (WASM) | **~50x tempo real** |
-| Onde roda | navegador, Node | **qualquer lugar**, inclusive Workers/edge |
-| Latência inicial | segundos (baixar pesos) | **instantânea** |
-
-```js
-// Motor neural — quando a prioridade é soar humano
-import { Vozz } from "@pedrobef/vozz";
-const tts = await Vozz.carregar();
-(await tts.falar("Olá!")).tocar();
-
-// Motor em código — quando a prioridade é ser leve e rodar em qualquer lugar
-import { Sintetizador } from "@pedrobef/vozz/sintetizador";
-const tts = new Sintetizador();
-tts.falar("Olá!").tocar();          // síncrono, sem await
-```
-
-O motor em código usa **síntese por formantes** (modelo fonte-filtro, na
-linha do sintetizador de Klatt): as pregas vocais geram um pulso, uma cascata
-de ressoadores reproduz as ressonâncias do trato vocal, e o áudio sai
-calculado amostra a amostra.
-
-Ele **não soa como uma pessoa** — soa como uma voz sintética clássica. Mas é
-inteligível, e isso foi verificado por medição, não por impressão. O motor é
-calibrado em malha fechada contra o perfil acústico da fala humana:
-
-| Métrica | Fala humana | `vozz` |
-| --- | --- | --- |
-| Energia 300–1000 Hz | 25–50% | 34,6% |
-| Energia 1000–3000 Hz (inteligibilidade) | 20–45% | 26,3% |
-| Energia 3000–8000 Hz | 5–30% | 29,1% |
-| Pausas e oclusivas | 18–42% | 28,3% |
-| Inclinação espectral | −14 a −5 dB/oitava | −6,7 |
-| Ritmo silábico | 2,5–7 Hz | 3,9 Hz |
-
-**30/30 critérios aprovados** em 5 frases de teste (`npm run qualidade`).
-As 7 vogais são acusticamente separáveis (distância mínima de 1,34 Bark, acima
-do limiar de confusão perceptual), e o erro dos formantes em relação aos
-valores de referência do português é de ~15% — contra 40% antes da calibração.
-
-Os parâmetros do motor não foram escolhidos no ouvido: vieram de busca
-automática (`npm run calibrar`) minimizando a distância para o perfil humano.
-
-Vozes: `clara` (feminina), `bruno` (masculina), `grave` (masculina grave).
-
-```js
-tts.falar("Bom dia!", { voz: "bruno", velocidade: 1.2, entonacao: 1.5 });
-```
-
-## Vozes
-
-| Voz     | Gênero    | Timbre                                          |
-| ------- | --------- | ----------------------------------------------- |
-| `dora`  | feminina  | Clara e natural. Narração, leitura, assistentes. |
-| `alex`  | masculina | Neutra e equilibrada. Tutoriais, conteúdo geral. |
-| `santa` | masculina | Mais grave e encorpada. Narração dramática.      |
-
-```js
-await tts.falar("Bom dia!", { voz: "alex", velocidade: 1.1 });
-```
-
-Aliases aceitos: `feminina`/`masculina`, `pf_dora`/`pm_alex`/`pm_santa`.
-
----
-
-## Desempenho
-
-| Item                     | Valor                                            |
-| ------------------------ | ------------------------------------------------ |
-| Pesos do modelo (int8)   | ~86 MB, baixados uma vez e mantidos em cache      |
-| Embedding por voz        | ~520 KB                                           |
-| Tamanho do pacote em si  | ~60 KB (o G2P é código, não dados)                |
-| Latência (WebGPU)        | tempo real ou mais rápido                         |
-| Latência (WASM, desktop) | ~1× tempo real                                    |
-| Áudio                    | PCM mono 24 kHz                                   |
-
-O backend é escolhido sozinho: **WebGPU** quando disponível, **WASM** como
-alternativa. Para forçar: `Vozz.carregar({ dispositivo: "wasm" })`.
-
----
-
-## Uso
-
-### Barra de progresso no primeiro carregamento
-
-```js
-const tts = await Vozz.carregar({
-  aoProgredir: ({ status, progresso }) => {
-    console.log(status, Math.round((progresso ?? 0) * 100) + "%");
-  },
-});
-```
-
-### Streaming — comece a tocar sem esperar o texto todo
-
-```js
-for await (const { texto, audio } of tts.falarEmFluxo(textoLongo, { voz: "dora" })) {
+for await (const { texto, audio } of tts.falarEmFluxo(textoLongo)) {
   console.log("tocando:", texto);
   await audio.tocar();
 }
@@ -266,7 +132,7 @@ for await (const { texto, audio } of tts.falarEmFluxo(textoLongo, { voz: "dora" 
 ### Ler a resposta de um LLM em tempo real
 
 ```js
-import { DivisorDeTexto } from "@pedrobef/vozz";
+import { DivisorDeTexto } from "@pedrobef/vozz/piper";
 
 const divisor = new DivisorDeTexto();
 
@@ -278,52 +144,62 @@ for await (const token of respostaDoLLM) divisor.empurrar(token);
 divisor.fechar();
 ```
 
-O divisor acumula tokens e libera **sentenças completas**, evitando prosódia
-picotada no meio da frase.
+O divisor acumula tokens e libera **frases completas** — evita prosódia
+picotada no meio da sentença.
 
-### Baixar / salvar
+### Sem download nenhum (roda até no edge)
+
+```js
+import { Sintetizador } from "@pedrobef/vozz/sintetizador";
+
+const tts = new Sintetizador();          // sem await: não há I/O
+const audio = tts.falar("Olá!", { voz: "clara" });
+audio.tocar();
+```
+
+Vozes: `clara` (feminina), `bruno` (masculina), `grave` (narração).
+
+### Só os fonemas
+
+```js
+import { fonemizar } from "@pedrobef/vozz/g2p";
+
+fonemizar("Olá, tudo bem?");        // "olˈa, tˈudʊ bˈeɪŋ?"
+fonemizar("Custa R$ 25,50 às 9h");  // números e moeda já expandidos
+```
+
+Zero dependências, ~36 kB. Útil para lipsync, visemas e legendas fonéticas.
+
+### Salvar e exportar
 
 ```js
 const audio = await tts.falar("Olá!");
-audio.paraWav();          // ArrayBuffer (WAV PCM 16-bit)
-audio.paraBlob();         // Blob audio/wav
-audio.paraURL();          // object URL para <audio src>
-await audio.salvar("ola.wav"); // baixa no navegador, grava em disco no Node
-audio.duracao;            // segundos
+
+audio.duracao;              // segundos
+audio.paraWav();            // ArrayBuffer (WAV PCM 16-bit)
+audio.paraBlob();           // Blob audio/wav
+audio.paraURL();            // object URL para <audio src>
+await audio.salvar("ola.wav");  // baixa no navegador, grava em disco no Node
 ```
 
-### Atalho de uma linha
-
-```js
-import { falar } from "@pedrobef/vozz";
-(await falar("Olá, mundo!")).tocar();  // carrega na 1ª chamada e reusa
-```
-
----
-
-## Normalização automática
+### Normalização automática
 
 O texto é preparado antes de virar fala:
 
-| Entrada       | Falado como                              |
-| ------------- | ---------------------------------------- |
+| Entrada | Falado como |
+| --- | --- |
 | `R$ 1.234,56` | mil duzentos e trinta e quatro reais e cinquenta e seis centavos |
-| `14h30`       | quatorze horas e trinta minutos          |
-| `07/09/2025`  | sete de setembro de dois mil e vinte e cinco |
-| `23°C`        | vinte e três graus celsius               |
-| `15%`         | quinze por cento                         |
-| `1º`          | primeiro                                 |
-| `Dr. Silva`   | doutor Silva                             |
-| `IBGE`        | i-bê-gê-é                                |
-| `ONU`         | onu (sigla pronunciável)                 |
+| `14h30` | quatorze horas e trinta minutos |
+| `07/09/2025` | sete de setembro de dois mil e vinte e cinco |
+| `23°C` | vinte e três graus celsius |
+| `15%` | quinze por cento |
+| `1º` | primeiro |
+| `Dr. Silva` | doutor Silva |
+| `IBGE` | i-bê-gê-é |
 
-Para desligar: `tts.falar(texto, { normalizar: false })`.
+Desligar: `tts.falar(texto, { normalizar: false })`.
 
----
-
-## Pronúncia customizada
-
-Nomes próprios, termos técnicos e estrangeirismos:
+### Pronúncia customizada
 
 ```js
 await tts.falar("Rodamos em Kubernetes.", {
@@ -331,86 +207,358 @@ await tts.falar("Rodamos em Kubernetes.", {
 });
 ```
 
-Para descobrir o IPA de qualquer texto sem sintetizar:
-
-```js
-Vozz.fonemizar("Olá, tudo bem?");  // "olˈa, tˈudʊ bˈeɪ̃ŋ?"
-```
-
-O G2P também é importável sozinho — sem carregar o modelo, sem rede,
-útil para lipsync, visemas ou legendas fonéticas:
-
-```js
-import { fonemizar, silabificar } from "@pedrobef/vozz/g2p";
-```
+Para descobrir o IPA de qualquer texto: `Piper.fonemizar("...")`.
 
 ---
 
-## Notas de integração
+## Receitas por framework
 
-**Bundlers.** O pacote é ESM puro. Vite/Next/Webpack funcionam direto. Em
-projetos com SSR, carregue no cliente: `const { Vozz } = await import("@pedrobef/vozz")`.
+### Next.js (Vercel)
 
-**Dependências nativas (`onnxruntime-node`, `sharp`).** Elas aparecem na árvore
-do `npm ls` porque vêm dentro do `@huggingface/transformers`, mas **não vão para
-o bundle do navegador**: o transformers.js usa *exports condicionais* e resolve
-para a build web, marcando esses módulos como ignorados. Verificado com esbuild
-em `--platform=browser` — o bundle sai com `onnxruntime-node (ignored)` e
-`sharp (ignored)`, sem binário nativo.
+O Piper só existe no cliente:
 
-**Cloudflare Workers / edge.** O runtime de edge não tem WebGPU nem WASM
-threads, então a *síntese* não roda lá — ela é feita no dispositivo do usuário,
-que é justamente a proposta do pacote. O que roda perfeitamente no edge é o
-fonemizador, que é JS puro e não importa nada:
+```tsx
+"use client";
+import { useEffect, useRef, useState } from "react";
 
-```js
-import { fonemizar } from "@pedrobef/vozz/g2p"; // zero dependências
+export default function BotaoFalar() {
+  const tts = useRef<any>(null);
+  const [pronto, setPronto] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { Piper } = await import("@pedrobef/vozz/piper");
+      tts.current = await Piper.carregar();
+      setPronto(true);
+    })();
+  }, []);
+
+  return (
+    <button disabled={!pronto} onClick={async () => (await tts.current.falar("Olá!")).tocar()}>
+      {pronto ? "Falar" : "Carregando..."}
+    </button>
+  );
+}
 ```
 
-**COOP/COEP.** Não são obrigatórios. Ative-os apenas se quiser WASM
-multi-thread (mais velocidade):
+### Vite / React / Astro / SvelteKit
+
+```js
+import { Piper } from "@pedrobef/vozz/piper";
+const tts = await Piper.carregar();
+(await tts.falar("Olá!")).tocar();
+```
+
+Sem `optimizeDeps`, sem config, sem instalar `onnxruntime-web`.
+
+### Cloudflare Pages
+
+Site estático comum — a síntese roda no navegador, então não há backend.
+Faça o deploy normalmente; nenhuma configuração especial é necessária.
+
+### Cloudflare Workers / Pages Functions
+
+No edge funcionam o G2P e o sintetizador (JS puro, sem dependências):
+
+```js
+import { Sintetizador } from "@pedrobef/vozz/sintetizador";
+
+export default {
+  fetch(request) {
+    const texto = new URL(request.url).searchParams.get("t") ?? "Olá!";
+    const audio = new Sintetizador().falar(texto);
+    return new Response(audio.paraWav(), {
+      headers: { "content-type": "audio/wav" },
+    });
+  },
+};
+```
+
+### Node (gerar arquivos em lote)
+
+```bash
+npm i @pedrobef/vozz onnxruntime-node
+```
+
+```js
+import { Piper } from "@pedrobef/vozz/piper";
+const tts = await Piper.carregar();
+await (await tts.falar("Olá!")).salvar("saida.wav");
+```
+
+### Deno / Bun
+
+```js
+import { fonemizar } from "npm:@pedrobef/vozz/g2p";
+```
+
+Mais exemplos em [`exemplos/README.md`](./exemplos/README.md).
+
+---
+
+## API
+
+| Símbolo | Descrição |
+| --- | --- |
+| `Piper.carregar(opcoes?)` | Baixa o modelo e inicializa. Devolve `Piper`. |
+| `Piper.fonemizar(texto)` | Texto → IPA, sem sintetizar. |
+| `Piper.usarRuntime(ort)` | Injeta o runtime ONNX manualmente. |
+| `Piper.limparCache()` | Remove o modelo do cache do navegador. |
+| `tts.falar(texto, opcoes?)` | Sintetiza tudo. Devolve `Audio`. |
+| `tts.falarEmFluxo(entrada, o?)` | Gera frase a frase (async generator). |
+| `new Sintetizador(opcoes?)` | Motor por formantes, síncrono. |
+| `fonemizar(texto, opcoes?)` | G2P puro (`@pedrobef/vozz/g2p`). |
+| `DivisorDeTexto` | Divisor incremental para saída de LLM. |
+| `Audio` | `tocar`, `parar`, `salvar`, `paraWav/Blob/URL`, `duracao`. |
+
+**Opções de `carregar`:** `dispositivo` (`auto`/`wasm`/`webgpu`), `cdn`,
+`urlModelo`, `urlConfig`, `urlRuntime`, `cache`, `aoProgredir`.
+
+**Opções de `falar`:** `velocidade` (0.5–2), `ruido` (expressividade),
+`ruidoW`, `lexico`, `normalizar`.
+
+Tipos TypeScript inclusos.
+
+---
+
+## Problemas comuns
+
+<details>
+<summary><b>"Vite não consegue resolver o specifier onnxruntime-web"</b></summary>
+
+<br>
+
+Corrigido na **0.2.2**. Atualize:
+
+```bash
+npm i @pedrobef/vozz@latest
+```
+
+O runtime agora é importado do CDN por URL absoluta, que o navegador resolve
+sozinho — nenhum bundler precisa resolvê-lo. Não é preciso instalar
+`onnxruntime-web` nem mexer em `optimizeDeps`.
+
+Se você usa uma CSP restritiva, veja *"CSP bloqueando o CDN"* abaixo.
+
+</details>
+
+<details>
+<summary><b>"no available backend found" / a sessão não é criada</b></summary>
+
+<br>
+
+Corrigido na **0.2.3**. Atualize:
+
+```bash
+npm i @pedrobef/vozz@latest
+```
+
+**O que acontecia:** o modelo é quantizado em int8 e usa os operadores
+`ConvInteger` e `DynamicQuantizeLinear`. O backend WebGPU do
+`onnxruntime-web` é voltado a ponto flutuante e **não implementa** esses
+operadores — a sessão falhava ao ser criada.
+
+O pacote agora inspeciona o modelo e usa WASM automaticamente. Se você fixou
+o dispositivo na mão, remova a opção:
+
+```js
+await Piper.carregar({ dispositivo: "webgpu" });  // ❌
+await Piper.carregar();                           // ✅ detecta sozinho
+```
+
+WebGPU só acelera modelos fp32/fp16.
+
+</details>
+
+<details>
+<summary><b>O build do servidor tenta empacotar o onnxruntime</b></summary>
+
+<br>
+
+Importe o Piper apenas em código de cliente (dentro de `useEffect`,
+`onMount`, ou `await import()` sob `if (typeof window !== "undefined")`).
+
+No Next.js, se ainda ocorrer, marque como externo:
+
+```js
+// next.config.js
+module.exports = {
+  webpack: (config, { isServer }) => {
+    if (isServer) config.externals = [...(config.externals ?? []), "onnxruntime-web"];
+    return config;
+  },
+};
+```
+
+</details>
+
+<details>
+<summary><b>CSP bloqueando o CDN</b></summary>
+
+<br>
+
+Se a sua Content-Security-Policy restringe origens, libere o jsDelivr:
+
+```
+script-src  'self' https://cdn.jsdelivr.net;
+connect-src 'self' https://cdn.jsdelivr.net;
+worker-src  'self' blob:;
+```
+
+Ou hospede tudo no seu domínio:
+
+```js
+await Piper.carregar({
+  cdn: "/modelo",                          // seu .onnx e .json
+  urlRuntime: "/vendor/ort.min.mjs",       // build ESM do onnxruntime-web
+});
+```
+
+</details>
+
+<details>
+<summary><b>O modelo baixa toda vez</b></summary>
+
+<br>
+
+Ele fica na Cache API do navegador. Se estiver rebaixando sempre:
+
+- **Modo anônimo** descarta o cache ao fechar a aba — é esperado.
+- **Sem HTTPS**: a Cache API exige contexto seguro (`https://` ou
+  `localhost`).
+- **Cota cheia**: o pacote ignora falhas de cache em silêncio e continua
+  funcionando; libere espaço no navegador.
+
+Para forçar o redownload: `await Piper.limparCache()`.
+
+</details>
+
+<details>
+<summary><b>A síntese está lenta</b></summary>
+
+<br>
+
+Ative WASM multi-thread com estes cabeçalhos (SharedArrayBuffer):
 
 ```
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
-**Node.js.** Funciona (≥18) para gerar arquivos em lote — use
-`dispositivo: "cpu"` e `audio.salvar()`.
+No Cloudflare Pages, crie um arquivo `_headers` na raiz do deploy:
 
-**Offline total.** Os pesos vêm do Hugging Face na primeira execução. Para
-ambientes sem internet, hospede o repositório e aponte `repo`.
+```
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+```
 
----
+Outras opções: use `falarEmFluxo` para tocar a primeira frase enquanto o
+resto gera; ou `Sintetizador`, que é ~70× tempo real (voz robótica).
 
-## API
+Atenção: COEP quebra recursos de terceiros sem CORS. Se algo parar de
+carregar, teste sem esses cabeçalhos primeiro.
 
-| Símbolo                          | Descrição                                       |
-| -------------------------------- | ----------------------------------------------- |
-| `Vozz.carregar(opcoes?)`         | Baixa e inicializa o modelo.                     |
-| `Vozz.vozes()`                   | Lista as vozes disponíveis.                      |
-| `Vozz.fonemizar(texto, opcoes?)` | Texto → IPA, sem sintetizar.                     |
-| `tts.falar(texto, opcoes?)`      | Sintetiza tudo. Devolve `Audio`.                 |
-| `tts.falarEmFluxo(entrada, o?)`  | Gera sentença a sentença (async generator).      |
-| `falar(texto, opcoes?)`          | Atalho com instância única.                      |
-| `preAquecer(opcoes?)`            | Pré-carrega o modelo.                            |
-| `DivisorDeTexto`                 | Divisor incremental de sentenças.                |
-| `Audio`                          | `tocar`, `parar`, `salvar`, `paraWav/Blob/URL`.  |
+</details>
 
-Tipos TypeScript inclusos.
+<details>
+<summary><b>"Instale o runtime ONNX para Node"</b></summary>
 
----
+<br>
 
-## Demo
+Em Node não há import por URL. Instale o pacote nativo:
 
 ```bash
-npm run demo    # gera WAVs no Node
-npm run serve   # abre a demo do navegador em http://localhost:8080
-npm test        # 17 testes, incluindo a métrica de fidelidade do G2P
+npm i onnxruntime-node
+```
+
+</details>
+
+<details>
+<summary><b>Erro ao importar em Cloudflare Workers</b></summary>
+
+<br>
+
+Importar `/piper` no Worker é seguro (0.2.1+), mas a **síntese neural não
+roda no edge** — falta memória para o WASM. Use o sintetizador:
+
+```js
+import { Sintetizador } from "@pedrobef/vozz/sintetizador";
+```
+
+Padrão recomendado: o Worker devolve os fonemas (`/g2p`, rápido e leve) e o
+navegador faz a síntese neural.
+
+</details>
+
+<details>
+<summary><b>Uma palavra sai com pronúncia errada</b></summary>
+
+<br>
+
+Nomes próprios e estrangeirismos podem escapar do léxico. Corrija com IPA:
+
+```js
+await tts.falar("Trabalho na Zendesk.", {
+  lexico: { zendesk: "zẽndˈɛski" },
+});
+```
+
+Use `Piper.fonemizar("palavra")` para ver o que o G2P está gerando.
+
+</details>
+
+<details>
+<summary><b>O áudio não toca no iOS / Safari</b></summary>
+
+<br>
+
+Navegadores móveis exigem que a reprodução venha de um gesto do usuário.
+Chame `tocar()` dentro do handler de clique — não em `useEffect` nem em
+`setTimeout`:
+
+```js
+botao.onclick = async () => (await tts.falar("Olá!")).tocar();
+```
+
+</details>
+
+---
+
+## Quanto pesa
+
+| Item | Tamanho | Quando |
+| --- | --- | --- |
+| código do `vozz` | ~52 kB | sempre |
+| `/g2p` sozinho | ~36 kB | se usar só os fonemas |
+| runtime ONNX (JS) | ~435 kB | só com o Piper |
+| runtime ONNX (WASM) | ~11 MB | só com o Piper |
+| modelo de voz | 18,7 MB | só com o Piper, **uma vez** |
+
+Tudo fica em cache. Se o peso for proibitivo, `vozz/sintetizador` gera voz
+sem baixar **nada** (~72 kB, roda no edge) — mais robótica, mas inteligível.
+
+---
+
+## Desenvolvimento
+
+```bash
+npm test          # 39 testes, incluindo a fidelidade do G2P
+npm run qualidade # relatório acústico do sintetizador
+npm run eval      # PER contra o espeak-ng
+npm run pages     # demo local em http://localhost:8080
 ```
 
 ---
 
-## Licença
+## Créditos e licença
 
-Apache-2.0 — código e pesos (Kokoro-82M, `hexgrad`). Uso comercial liberado.
+Código em **Apache-2.0**. Uso comercial liberado.
+
+- Modelo de voz: [Piper](https://github.com/rhasspy/piper) (VITS), voz
+  `pt_BR-faber-medium`, quantizada em int8 — MIT.
+- Motor alternativo: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)
+  de `hexgrad` — Apache-2.0.
+- Inferência: [onnxruntime-web](https://github.com/microsoft/onnxruntime) — MIT.
+
+Os pesos **não** vão dentro do pacote: são baixados sob demanda.

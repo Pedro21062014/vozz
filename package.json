@@ -28,6 +28,7 @@
   "files": [
     "src",
     "types",
+    "assets",
     "README.md",
     "LICENSE",
     "pages",
