@@ -26,6 +26,9 @@ jobs:
       - name: Instalar dependências
         run: npm ci || npm install
 
+      - name: Lint (pega ReferenceError antes de publicar)
+        run: npx eslint src/
+
       - name: Rodar testes
         run: npm test
 

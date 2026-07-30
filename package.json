@@ -44,7 +44,8 @@
     "calibrar": "node scripts/calibrar.mjs",
     "calibrar-vogais": "node scripts/calibrar-vogais.mjs",
     "build:pages": "node scripts/build-pages.mjs",
-    "pages": "node scripts/build-pages.mjs && npx --yes serve dist-pages -l 8080"
+    "pages": "node scripts/build-pages.mjs && npx --yes serve dist-pages -l 8080",
+    "lint": "eslint src/"
   },
   "keywords": [
     "tts",
@@ -90,5 +91,8 @@
     "onnxruntime-web": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
   }
 }

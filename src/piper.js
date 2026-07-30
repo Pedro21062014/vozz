@@ -200,6 +200,8 @@ export class Piper {
       graphOptimizationLevel: "all",
     });
 
+    // Backend efetivamente usado: pode mudar se o preferido falhar.
+    let alvoFinal = alvo;
     let sessao;
     try {
       // WebGPU sempre com WASM na lista: o onnxruntime distribui os nós

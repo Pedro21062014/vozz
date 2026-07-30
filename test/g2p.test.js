@@ -601,3 +601,71 @@ test("piper.js aponta para o modelo uint8 e explica o erro de int8", () => {
   assert.ok(codigo.includes("usaConvIntegerAssinado"),
     "deve haver detecção para traduzir a mensagem do runtime");
 });
+
+/* ------------------ integridade do fluxo de carregamento ------------------ */
+
+test("carregar() executa de ponta a ponta sem ReferenceError", async () => {
+  // A 0.2.5 saiu com `alvoFinal is not defined`: ao remover um bloco de
+  // código, a declaração da variável foi apagada e os 4 usos ficaram. Erros
+  // assim só aparecem em runtime, depois do download de 18 MB — este teste
+  // percorre todo o caminho com um runtime falso, em milissegundos.
+  const { createServer } = await import("node:http");
+  const { readFile } = await import("node:fs/promises");
+  const { Piper } = await import("../src/piper.js");
+
+  const modelo = await readFile(new URL("../pt_BR-faber-medium-uint8.onnx", import.meta.url));
+  const config = await readFile(new URL("../pt_BR-faber-medium-uint8.onnx.json", import.meta.url));
+
+  const servidor = createServer((req, res) => {
+    const corpo = req.url.endsWith(".json") ? config : modelo;
+    res.writeHead(200, { "content-length": corpo.length });
+    res.end(corpo);
+  });
+  await new Promise((r) => servidor.listen(0, r));
+  const porta = servidor.address().port;
+
+  let provedores = null;
+  Piper.usarRuntime({
+    InferenceSession: {
+      create: async (_buf, opcoes) => {
+        provedores = opcoes.executionProviders;
+        return { inputNames: ["input"], outputNames: ["output"], run: async () => ({}) };
+      },
+    },
+    Tensor: class { constructor(t, d, dims) { this.type = t; this.data = d; this.dims = dims; } },
+  });
+
+  try {
+    const tts = await Piper.carregar({
+      urlModelo: `http://127.0.0.1:${porta}/m.onnx`,
+      urlConfig: `http://127.0.0.1:${porta}/c.json`,
+      cache: false,
+    });
+    assert.equal(tts.taxa, 22050, "taxa de amostragem do modelo");
+    assert.ok(["wasm", "webgpu"].includes(tts.dispositivo), "backend definido");
+    assert.ok(Array.isArray(provedores) && provedores.length > 0, "provedores informados ao runtime");
+    assert.ok(tts.idsDeFonemas(Piper.fonemizar("Olá!")).length > 2, "tokenização funcionando");
+  } finally {
+    servidor.close();
+    const mod = await import("../src/piper.js");
+    mod.usarRuntime(null);
+  }
+});
+
+test("nenhum identificador usado sem declaração em src/", async () => {
+  // Varredura estática barata: pega variáveis usadas em piper.js que não
+  // são declaradas, importadas, nem globais conhecidas.
+  const codigo = readFileSync(new URL("../src/piper.js", import.meta.url), "utf8");
+  const declarados = new Set([
+    ...[...codigo.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)].map((m) => m[1]),
+    ...[...codigo.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)/g)].map((m) => m[1]),
+    ...[...codigo.matchAll(/\bclass\s+([A-Za-z_$][\w$]*)/g)].map((m) => m[1]),
+    ...[...codigo.matchAll(/import\s*\{([^}]+)\}/g)].flatMap((m) =>
+      m[1].split(",").map((x) => x.trim().split(/\s+as\s+/).pop())),
+  ]);
+  // Só checamos os nomes locais suspeitos deste módulo.
+  for (const nome of ["alvoFinal", "temConvInteger", "criar", "sessao", "modeloBuf", "alvo"]) {
+    if (!codigo.includes(nome)) continue;
+    assert.ok(declarados.has(nome), `"${nome}" é usado mas nunca declarado`);
+  }
+});

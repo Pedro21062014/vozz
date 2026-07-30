@@ -411,6 +411,27 @@ await Piper.carregar({ urlModelo: "/modelo/pt_BR-faber-medium-uint8.onnx" });
 </details>
 
 <details>
+<summary><b>"alvoFinal is not defined"</b></summary>
+
+<br>
+
+Bug da versão **0.2.5**, corrigido na **0.2.6**:
+
+```bash
+npm i @pedrobef/vozz@latest
+```
+
+Era um `ReferenceError` meu: ao remover um bloco de código, a declaração de
+uma variável saiu junto, mas os usos ficaram. O erro aparecia dentro de
+`Piper.carregar()`, logo após o download do modelo.
+
+O CI agora roda `eslint` com a regra `no-undef` antes de publicar, e há um
+teste que percorre `carregar()` inteiro com um runtime falso — os dois
+detectam esse tipo de falha.
+
+</details>
+
+<details>
 <summary><b>"no available backend found" / a sessão não é criada</b></summary>
 
 <br>
