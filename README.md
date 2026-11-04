@@ -72,7 +72,7 @@ rede. Ele implementa silabificação, acentuação tônica, nasalização,
 palatalização de /d/ e /t/, vocalização do /l/ em coda, vibrante múltipla,
 redução de vogais átonas e sândi entre palavras.
 
-**Fidelidade medida:** 94,97% contra o `espeak-ng pt-br` (PER de 5,03% em
+**Fidelidade medida:** 96,70% contra o `espeak-ng pt-br` (PER de 3,30% em
 319 palavras e frases). O teste roda em `npm test`.
 
 ---
@@ -168,7 +168,7 @@ fonemizar("Olá, tudo bem?");        // "olˈa, tˈudʊ bˈeɪŋ?"
 fonemizar("Custa R$ 25,50 às 9h");  // números e moeda já expandidos
 ```
 
-Zero dependências, ~36 kB. Útil para lipsync, visemas e legendas fonéticas.
+Zero dependências, ~58 kB. Útil para lipsync, visemas e legendas fonéticas.
 
 ### Salvar e exportar
 
@@ -659,7 +659,7 @@ botao.onclick = async () => (await tts.falar("Olá!")).tocar();
 | Item | Tamanho | Quando |
 | --- | --- | --- |
 | código do `vozz` | ~52 kB | sempre |
-| `/g2p` sozinho | ~36 kB | se usar só os fonemas |
+| `/g2p` sozinho | ~58 kB | se usar só os fonemas |
 | runtime ONNX (JS) | ~435 kB | só com o Piper |
 | runtime ONNX (WASM) | ~11 MB | só com o Piper |
 | modelo de voz | 18,7 MB | só com o Piper, **uma vez** |
@@ -689,5 +689,9 @@ Código em **Apache-2.0**. Uso comercial liberado.
 - Motor alternativo: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)
   de `hexgrad` — Apache-2.0.
 - Inferência: [onnxruntime-web](https://github.com/microsoft/onnxruntime) — MIT.
+- Correções fonológicas (trema, `x` erudito, oxítonas verbais, ditongos
+  nasais, acento secundário) aportadas do
+  [vozz-g2p-rs](https://github.com/bcdeosce/vozz-g2p-rs), de `bcdeosce` —
+  Apache-2.0, com a lista de trema do IME-USP.
 
 Os pesos **não** vão dentro do pacote: são baixados sob demanda.

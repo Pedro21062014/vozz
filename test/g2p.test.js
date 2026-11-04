@@ -74,6 +74,65 @@ test("fonemas de palavras-chave", () => {
   }
 });
 
+test("regras fonológicas do porte do vozz-g2p-rs (gabarito espeak-ng pt-br)", () => {
+  // Correções aportadas do vozz-g2p-rs e verificadas palavra a palavra contra
+  // `espeak-ng -q --ipa -v pt-br`: x erudito (/ks/), prefixo ex- (/z/), trema,
+  // -am/-ou/-ei/-ai/-is/-us finais, acento secundário alternado, nasalização
+  // diante de nh, vocalização do l em coda e ditongos nasais gráficos.
+  const casos = {
+    "tóxico": "tˈɔksikʊ",
+    "hidroxila": "ˌidroksˈilæ",
+    "oxidação": "ˌoksidasˈɐ̃ʊ̃",
+    "clímax": "klˈimaks",
+    "fênix": "fˈeniks",
+    "ânexo": "ˈɐ̃neksʊ",
+    "falam": "fˈalɐ̃ʊ̃",
+    "cantam": "kˈɐ̃ŋtɐ̃ʊ̃",
+    "caminharam": "kˌæmiɲˈaɾɐ̃ʊ̃",
+    "venderam": "vˌeɪŋdˈeɾɐ̃ʊ̃",
+    "cantou": "kɐ̃ŋtˈow",
+    "falou": "falˈow",
+    "vendeu": "veɪŋdˈeʊ",
+    "cantei": "kɐ̃ŋtˈeɪ",
+    "abafai": "ˌabafˈaɪ",
+    "medis": "medʒˈis",
+    "impus": "impˈus",
+    "urubus": "ˌuɾubˈus",
+    "cinquenta": "sˌiŋkwˈeɪŋtæ",
+    "tranquilo": "trˌɐ̃ŋkwˈilʊ",
+    "aguento": "ˌaɡwˈeɪŋtʊ",
+    "linguística": "lˌiŋɡwˈistʃikæ",
+    "quarentena": "kwˌaɾeɪŋtˈenæ",
+    "guarda": "ɡwˈaɾədæ",
+    "quase": "kwˈazy",
+    "manhã": "mɐ̃ɲˈɐ̃",
+    "junho": "ʒˈũɲʊ",
+    "mão": "mˈɐ̃ʊ̃",
+    "mães": "mˈɐ̃ys",
+    "cãibra": "kˈɐ̃ɪbræ",
+    "farol": "faɾˈɔl",
+    "azul": "azˈuw",
+    "soltar": "sowtˈar",
+    "cultura": "kˌuwtˈuɾæ",
+    "alto": "ˈaʊtʊ",
+    "palma": "pˈaʊmæ",
+    "sério": "sˈɛɾjʊ",
+    "cárie": "kˈaɾjy",
+    "sírio": "sˈiɾjʊ",
+    "cílio": "sˈiljʊ",
+    "cianeto": "sˌiænˈetʊ",
+    "girasol": "ʒˌiɾazˈɔl",
+    "viagem": "vˌiˈaʒeɪŋ",
+    "ideia": "ˌidˈeɪæ",
+    "leite": "lˈeɪtʃy",
+    "roxo": "xˈoʃʊ",
+    "aluno": "ˌalˈunʊ",
+  };
+  for (const [palavra, esperado] of Object.entries(casos)) {
+    assert.equal(fonemizar(palavra), esperado, `falhou em "${palavra}"`);
+  }
+});
+
 test("G2P nunca emite 'g' ASCII (fora do vocabulário do modelo)", () => {
   const amostra = "gato guerra agora água gigante organização grande";
   assert.ok(!fonemizar(amostra).includes("g"), "encontrou g ASCII em vez de ɡ");

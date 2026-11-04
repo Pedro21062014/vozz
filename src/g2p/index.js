@@ -12,6 +12,7 @@
 
 import { normalizar } from "./normalize.js";
 import { buscarLexico, buscarClitico } from "./lexicon.js";
+import { uPronunciado } from "./trema.js";
 
 /* ------------------------------------------------------------------ *
  * Tabelas básicas
@@ -31,10 +32,35 @@ const eFraca = (c) => !!c && FRACAS.includes(c);
 const eConsoante = (c) => !!c && /[a-zç]/.test(c) && !VOGAIS.includes(c);
 
 /** Dígrafos consonantais que contam como uma única unidade. */
-const DIGRAFOS = ["ch", "lh", "nh", "rr", "ss", "qu", "gu"];
+const DIGRAFOS = ["ch", "lh", "nh", "rr", "ss"];
 
 /** Consoantes que podem formar ataque ramificado com líquida. */
 const OBSTRUINTES = "pbtdkgfvc";
+
+/** Consoantes que palatalizam diante de i/e brando. */
+const PALATALIZAVEIS = "cgdt";
+
+/**
+ * Radicais em que o "x" vale /ks/ (eruditismos), na convenção do espeak
+ * pt-br: táxi, fixo, tóxico, hidroxila, oxidação…
+ */
+const RADICAIS_KS = [
+  "taxi", "fix", "sex", "toxic", "reflex", "complex", "anex", "flux",
+  "nex", "paradox", "ortodox", "prolix", "axiom", "axil", "asfixi",
+  "crucifix", "toxin", "elix", "climax", "hidrox", "carbox", "oxid",
+  "oxig", "oxil", "dioxid", "peroxid", "superoxid", "hexa", "flex",
+];
+
+/** Exceções: aqui o x não vira /ks/ (sexta, anexim). */
+const EXCECOES_KS = ["sext", "anexim"];
+
+/** O "x" desta palavra vale /ks/? (radicais eruditos, ignorando acentos) */
+function temRadicalKs(p) {
+  // Sem diacríticos: "tóxico" contém o radical "toxic".
+  const plano = p.normalize("NFD").replace(/[\u0300-\u036f]/gu, "");
+  if (EXCECOES_KS.some((e) => plano.includes(e))) return false;
+  return RADICAIS_KS.some((r) => plano.includes(r));
+}
 
 /* ------------------------------------------------------------------ *
  * 1. Segmentação em unidades (consonantais e vocálicas)
@@ -46,6 +72,7 @@ const OBSTRUINTES = "pbtdkgfvc";
  */
 function segmentar(p) {
   const un = [];
+  const uPron = uPronunciado(p);
   let i = 0;
   while (i < p.length) {
     const c = p[i];
@@ -54,13 +81,26 @@ function segmentar(p) {
       i++;
       continue;
     }
-    const par = p.slice(i, i + 2);
-    // "qu"/"gu" só são dígrafo diante de e/i (quero, guerra); senão são C+glide.
-    if ((par === "qu" || par === "gu") && "eiéêíì".includes(p[i + 2] ?? "")) {
-      un.push({ tipo: "C", txt: par });
-      i += 2;
-      continue;
+    // "qu"/"gu": diante de a/o o u sempre soa (quando, guarda, quase);
+    // diante de e/i, soa só nas palavras que tinham trema (cinquenta,
+    // tranquilo, consequência) — na nova ortografia o trema sumiu, o som não.
+    if ((c === "q" || c === "g") && p[i + 1] === "u") {
+      const depois = p[i + 2] ?? "";
+      if ("ao".includes(depois)) {
+        un.push({ tipo: "C", txt: c === "q" ? "kw" : "gw" });
+        i += 2;
+        continue;
+      }
+      if ("eiéêí".includes(depois)) {
+        un.push({
+          tipo: "C",
+          txt: uPron ? (c === "q" ? "kw" : "gw") : c === "q" ? "qu" : "gu",
+        });
+        i += 2;
+        continue;
+      }
     }
+    const par = p.slice(i, i + 2);
     if (DIGRAFOS.includes(par)) {
       un.push({ tipo: "C", txt: par });
       i += 2;
@@ -90,10 +130,11 @@ export function silabificar(palavra) {
   const un = segmentar(p);
   if (!un.length) return [];
 
-  /* 2a. Agrupa vogais em núcleos, aplicando ditongo decrescente. */
+  /* 2a. Agrupa vogais em núcleos, aplicando ditongos. */
   const nucleos = []; // {vogais:string[], idxIni:number, idxFim:number}
   const consAntes = []; // consoantes acumuladas antes de cada núcleo
   let buffer = [];
+  const temAcentoPalavra = [...p].some((c) => ACENTO_GRAFICO.includes(c));
 
   for (let i = 0; i < un.length; i++) {
     const u = un[i];
@@ -103,14 +144,32 @@ export function silabificar(palavra) {
     }
     // Início de um novo núcleo.
     const vogais = [u.txt];
-    // Ditongo decrescente: forte (ou fraca) + fraca átona.
+    const atual = u.txt;
+    const consoanteAntes = buffer[buffer.length - 1] ?? "";
     const prox = un[i + 1];
-    if (prox && prox.tipo === "V" && eFraca(prox.txt)) {
+    if (prox && prox.tipo === "V") {
+      const proxTxt = prox.txt;
       const depois = un[i + 2];
-      // "ui"/"iu" só formam ditongo se não houver hiato marcado.
-      const proxProx = depois && depois.tipo === "V";
-      if (!(eFraca(u.txt) && eFraca(prox.txt) && proxProx)) {
-        vogais.push(prox.txt);
+      // Ditongo nasal gráfico (ão, ãe, õe): um único núcleo.
+      const ditongoNasalGrafico = TIL.includes(atual);
+      // Ditongo decrescente: forte (ou fraca) + fraca átona.
+      const fracaProx = eFraca(proxTxt);
+      const ambasFracas = eFraca(atual) && fracaProx;
+      const proxProxVogal = depois && depois.tipo === "V";
+      const ditongoDecrescente = fracaProx && !(ambasFracas && proxProxVogal);
+      // Ditongo crescente (i + forte): exige acento gráfico em outra sílaba
+      // (série sim, viagem não), consoante não-palatalizável antes do i
+      // (cárie sim, cianeto não) e 2ª vogal sem acento (balaústre não).
+      const proxEForte = !fracaProx && !FRACAS_ACENT.includes(proxTxt);
+      const ditongoCrescente =
+        atual === "i" &&
+        proxEForte &&
+        temAcentoPalavra &&
+        consoanteAntes !== "" &&
+        !PALATALIZAVEIS.includes(consoanteAntes) &&
+        !ACENTO_GRAFICO.includes(proxTxt);
+      if (ditongoNasalGrafico || ditongoDecrescente || ditongoCrescente) {
+        vogais.push(proxTxt);
         i++;
       }
     }
@@ -200,6 +259,15 @@ export function acentuar(sil, palavra) {
     /^[rlzxn]$/.test(codaUlt) ||
     // "-ais/-eis/-óis": ditongo + s (papéis, reais)
     (codaUlt === "s" && ultima.nucleo.length === 2) ||
+    // ditongo decrescente final átono: falou, cantei, abafai, vendeu
+    (codaUlt === "" &&
+      ultima.nucleo.length === 2 &&
+      eFraca(ultima.nucleo[ultima.nucleo.length - 1])) ||
+    // "-is/-us" sem acento gráfico: medis, impus, urubus (palavras com
+    // acento gráfico caíram no teste (a) acima — lápis, vírus)
+    (codaUlt === "s" && /^(is|us)$/.test(term)) ||
+    // "-om/-um" final (bombom, fórum sem acento)
+    /^(om|um)s?$/.test(term) ||
     // "-im/-um/-ins/-uns"
     /^(i|u)(m|ns|m s)?$/.test(term) && /m|ns/.test(codaUlt) ||
     // tônica em i/u finais (ex.: caqui, urubu) quando sem coda
@@ -219,13 +287,19 @@ export function acentuar(sil, palavra) {
 }
 
 /**
- * Marca acento secundário na 1ª sílaba de palavras com 3+ sílabas,
- * quando ela não é a tônica nem lhe é adjacente — convenção do espeak pt-br
- * (ex.: "banana" -> bˌænˈɐ̃næ, "hospital" -> ˌospitˈaʊ).
+ * Marca acentos secundários alternados (sílabas 0, 2, 4… antes da tônica),
+ * convenção do espeak pt-br (banana → bˌænˈɐ̃næ, radionuclídeo →
+ * xˌadʒiˌonuklˈidʒjʊ). Palavras com o prefixo sobre- (4+ sílabas) não
+ * acentuam o prefixo: sobreviver → sobɾevivˈer.
  */
-function acentoSecundario(sil, iTon) {
-  if (sil.length < 3 || iTon <= 1) return;
+function acentoSecundario(sil, iTon, palavra) {
+  if (sil.length < 3 || iTon <= 0) return;
+  if (sil.length >= 4 && palavra.startsWith("sobre")) {
+    for (let pos = 2; pos < iTon - 1; pos += 2) sil[pos].secundaria = true;
+    return;
+  }
   sil[0].secundaria = true;
+  for (let pos = 2; pos < iTon - 1; pos += 2) sil[pos].secundaria = true;
 }
 
 /* ------------------------------------------------------------------ *
@@ -235,12 +309,15 @@ function acentoSecundario(sil, iTon) {
 const NASALIZAVEL = new Set(["m", "n"]);
 
 /** Nasaliza a vogal segundo a convenção do espeak pt-br. */
-function nucleoNasal(v) {
+function nucleoNasal(v, nasalPorCoda) {
   switch (v) {
     case "a": case "á": case "à": case "â": case "ã": return "ɐ̃";
-    case "e": case "é": case "ê": return "eɪ";
+    // "e" só vira eɪ diante de coda nasal (vendeu → veɪŋd-);
+    // diante de nasal no onset fica puro (veneno → venˈenʊ).
+    case "e": case "é": case "ê": return nasalPorCoda ? "eɪ" : "e";
     case "i": case "í": return "i";
-    case "o": case "ó": case "ô": case "õ": return "o";
+    case "o": case "ó": case "ô": return "o";
+    case "õ": return "õ";
     case "u": case "ú": return "ũ";
     default: return v;
   }
@@ -267,11 +344,14 @@ function vogalOral(v, { tonica, finalPalavra, pretonicaNasal }) {
   }
 }
 
-/** Semivogal (offglide) de ditongo decrescente. */
-function offglide(v, nasal) {
+/** Semivogal (offglide) de ditongo decrescente, conforme a vogal base. */
+function offglide(v, nasal, vogalPrincipal = "") {
   if (v === "i" || v === "í") return nasal ? "ɪ̃" : "ɪ";
-  if (v === "u" || v === "ú") return nasal ? "ʊ̃" : "ʊ";
-  if (v === "o") return nasal ? "ʊ̃" : "ʊ";
+  if (v === "u" || v === "ú") {
+    if (nasal) return "ʊ̃";
+    return "aáàâeéê".includes(vogalPrincipal) ? "ʊ" : "w";
+  }
+  if (v === "o") return nasal ? "ʊ̃" : "w";
   if (v === "e") return nasal ? "ɪ̃" : "ɪ";
   return v;
 }
@@ -279,34 +359,57 @@ function offglide(v, nasal) {
 /** Converte o núcleo (1–2 vogais) em IPA. */
 function mapearNucleo(sil, ctx) {
   const { tonica = false } = sil;
-  const { finalPalavra, nasalPorCoda, pretonicaNasal = false } = ctx;
+  const {
+    finalPalavra,
+    nasalPorCoda,
+    nasalIntervoc = false,
+    pretonicaNasal = false,
+  } = ctx;
   const vs = sil.nucleo;
   if (!vs.length) return "";
 
   const temTil = vs.some((v) => TIL.includes(v));
-  const nasal = nasalPorCoda || temTil;
+  const nasal = nasalPorCoda || nasalIntervoc || temTil;
 
-  // Ditongos nasais gráficos: ão, ãe, õe.
+  // Ditongos nasais gráficos: ão, ãe, õe — um único núcleo
+  // (mão → mˈɐ̃ʊ̃, mãe → mˈɐ̃y, põe → pˈõj, cãibra → kˈɐ̃ɪbræ).
   if (vs.length === 2 && temTil) {
     const [a, b] = vs;
-    const base = nucleoNasal(a);
+    const base = nucleoNasal(a, nasalPorCoda);
     if (b === "o" || b === "u") return `${base}ʊ̃`;
-    if (b === "e" || b === "i") return `${base}ɪ̃`;
-    return base + offglide(b, true);
+    if (b === "e") return base + (TIL.includes(a) && a === "ã" ? "y" : "j");
+    if (b === "i") return `${base}ɪ`;
+    return base + offglide(b, true, a);
   }
 
   if (vs.length === 1) {
     const v = vs[0];
-    if (nasal) return nucleoNasal(v);
+    if (nasal) return nucleoNasal(v, nasalPorCoda);
     return vogalOral(v, { tonica, finalPalavra, pretonicaNasal });
   }
 
-  // Ditongo oral decrescente.
+  // Ditongo crescente (i + forte): hiato se tônico ou 2ª vogal acentuada
+  // (diádico, balaústre); senão glide j (sério → sˈiɾjʊ, cárie → kˈaɾjy).
   const [a, b] = vs;
-  // "ou" -> ow na convenção espeak pt-br.
-  if (a === "o" && b === "u") return "oʊ";
-  const base = nasal ? nucleoNasal(a) : vogalOral(a, { tonica, finalPalavra: false, pretonicaNasal });
-  return base + offglide(b, nasal);
+  if (eFraca(a) && !eFraca(b)) {
+    if (tonica || ACENTO_GRAFICO.includes(b)) {
+      return (
+        vogalOral(a, { tonica: true, finalPalavra: false }) +
+        vogalOral(b, { tonica: false, finalPalavra, pretonicaNasal })
+      );
+    }
+    return "j" + vogalOral(b, { tonica, finalPalavra, pretonicaNasal });
+  }
+
+  // Ditongo oral decrescente.
+  const base =
+    a === "â"
+      ? "æ"
+      : nasal
+        ? nucleoNasal(a, nasalPorCoda)
+        : vogalOral(a, { tonica, finalPalavra: false, pretonicaNasal });
+  const nasalOffglide = nasal && a !== "â";
+  return base + offglide(b, nasalOffglide, a);
 }
 
 /** Consoante de coda nasal: m diante de labial, senão ŋ. */
@@ -337,6 +440,9 @@ function mapearOnset(cons, ctx) {
       case "ss": out += "s"; break;
       case "qu": out += "k"; break;
       case "gu": out += "ɡ"; break;
+      // "qu"/"gu" com u soante (quando → kwˈɐ̃ŋdʊ, aguento → aɡwˈeɪŋtʊ).
+      case "kw": out += "kw"; break;
+      case "gw": out += "ɡw"; break;
 
       case "b": out += "b"; break;
       case "c": out += brando ? "s" : "k"; break;
@@ -365,7 +471,10 @@ function mapearOnset(cons, ctx) {
       case "t": out += "iɪ".includes(vSeg) || vSeg === "y" ? (proximaCons ? "t" : "tʃ") : "t"; break;
       case "v": out += "v"; break;
       case "w": out += "w"; break;
-      case "x": out += "ʃ"; break;
+      case "x":
+        // Radicais eruditos: /ks/ (táxi, tóxico); senão /ʃ/ (baixo, xícara).
+        out += ctx.forcarKs ? "ks" : "ʃ";
+        break;
       case "y": out += "j"; break;
       case "z": out += "z"; break;
       default: out += c;
@@ -376,7 +485,7 @@ function mapearOnset(cons, ctx) {
 
 /** Mapeia a coda silábica. */
 function mapearCoda(cons, ctx) {
-  const { proxOnset, finalPalavra, sonorizarS } = ctx;
+  const { proxOnset, finalPalavra, sonorizarS, vogalPrincipal = "", forcarKs = false } = ctx;
   let out = "";
   for (let i = 0; i < cons.length; i++) {
     const c = cons[i];
@@ -392,7 +501,18 @@ function mapearCoda(cons, ctx) {
         out += finalPalavra && ehUltima ? "r" : "ɾə";
         break;
       case "l":
-        out += "ʊ";
+        // Vocalização do l em coda, convenção do espeak pt-br:
+        // após a/e → ʊ (alto → ˈaʊtʊ, palma → pˈaʊmæ);
+        // após o/u → w (soltar → sowtˈar, cultura → kuwtˈuɾæ);
+        // em fim de palavra: -ol preserva o l (farol → faɾˈɔl),
+        // -ul vira w (azul → azˈuw), -el/-il viram ʊ (papel, canil).
+        if (finalPalavra && ehUltima) {
+          if ("oóô".includes(vogalPrincipal)) out += "l";
+          else if ("uú".includes(vogalPrincipal)) out += "w";
+          else out += "ʊ";
+        } else {
+          out += "aáàâeéê".includes(vogalPrincipal) ? "ʊ" : "w";
+        }
         break;
       case "s": case "ss":
         if (finalPalavra && ehUltima) out += sonorizarS ? "z" : "s";
@@ -401,7 +521,10 @@ function mapearCoda(cons, ctx) {
       case "z":
         out += finalPalavra && ehUltima ? (sonorizarS ? "z" : "s") : "z";
         break;
-      case "x": out += "s"; break;
+      case "x":
+        // Fim de palavra: /ks/ (clímax, fênix, látex); antes de consoante, /s/.
+        out += (finalPalavra && ehUltima) || forcarKs ? "ks" : "s";
+        break;
       case "c": out += "k"; break;
       case "ç": out += "s"; break;
       case "b": out += "b"; break;
@@ -416,6 +539,9 @@ function mapearCoda(cons, ctx) {
   return out;
 }
 
+/** Nasais que nasalizam a vogal da sílaba anterior quando estão no onset. */
+const NASALIZAVEL_CONTATO = new Set(["m", "n", "nh"]);
+
 /**
  * Converte uma palavra em IPA.
  * @param {string} palavra
@@ -423,16 +549,22 @@ function mapearCoda(cons, ctx) {
  */
 export function palavraParaIPA(palavra, ctx = {}) {
   const { proximaInicial = "" } = ctx;
-  const p = String(palavra).toLowerCase();
+  // ü é grafia pré-reforma: equivale ao u com trema pronunciado.
+  const p = String(palavra).toLowerCase().replace(/ü/g, "u");
   if (!p) return "";
 
   const sil = silabificar(p);
   if (!sil.length) return "";
   const iTon = acentuar(sil, p);
-  acentoSecundario(sil, iTon);
+  acentoSecundario(sil, iTon, p);
 
   const sonorizarS =
     !!proximaInicial && (eVogal(proximaInicial) || "bdgjlmnrvz".includes(proximaInicial));
+
+  // Prefixo ex- diante de vogal: x vale /z/ (exame, exemplo, exato).
+  const prefixoEx = p.length > 2 && p[0] === "e" && p[1] === "x" && eVogal(p[2]);
+  // Radicais eruditos: x vale /ks/ (táxi, tóxico, hidroxila).
+  const forcarKs = temRadicalKs(p);
 
   let out = "";
   let codaAnterior = "";
@@ -442,43 +574,77 @@ export function palavraParaIPA(palavra, ctx = {}) {
     const prox = sil[s + 1];
     const finalPalavra = s === sil.length - 1;
 
+    // "-am" final: ditongo nasal, sem coda ŋ (falam → fˈalɐ̃ʊ̃,
+    // caminharam → kˌæmiɲˈaɾɐ̃ʊ̃).
+    const ehAmFinal =
+      finalPalavra &&
+      cur.nucleo.length === 1 &&
+      "aáàã".includes(cur.nucleo[0]) &&
+      cur.coda.length === 1 &&
+      cur.coda[0] === "m";
+
     // A coda nasal (m/n) nasaliza o núcleo desta sílaba.
     const nasalPorCoda = cur.coda.length > 0 && NASALIZAVEL.has(cur.coda[0]);
-    // "a" também nasaliza diante de nasal intervocálica (cama, ano).
-    // "a" diante de nasal intervocálica: nasaliza se tônico (cama, ano),
-    // mas apenas reduz para [æ] se pretônico (banana, caneta).
+
+    // Nasal no onset da sílaba seguinte: "a" nasaliza — com "nh",
+    // em qualquer posição de acento (manhã → mɐ̃ɲˈɐ̃, junho → ʒˈũɲʊ);
+    // com m/n, só "a" tônica (cama → kˈɐ̃mæ; aluno mantém o u oral);
+    // pretônica, "a" apenas reduz para [æ] (banana, caneta).
+    const proximaEhNh = !!prox && prox.onset.length === 1 && prox.onset[0] === "nh";
+    const vAtual = cur.nucleo[0] ?? "";
     const contatoNasal =
       !nasalPorCoda &&
+      cur.coda.length === 0 &&
       !!prox &&
       prox.onset.length === 1 &&
-      NASALIZAVEL.has(prox.onset[0]) &&
-      cur.nucleo.length === 1 &&
-      "aáà".includes(cur.nucleo[0]);
-    const nasalIntervoc = contatoNasal && !!cur.tonica;
-    const pretonicaNasal = contatoNasal && !cur.tonica;
+      NASALIZAVEL_CONTATO.has(prox.onset[0]) &&
+      cur.nucleo.length === 1;
+    const aOuAcentuada = "aáàâã".includes(vAtual);
+    const ehU = "uú".includes(vAtual);
+    const nasalIntervoc =
+      contatoNasal &&
+      (proximaEhNh
+        ? aOuAcentuada || ehU
+        : cur.tonica && aOuAcentuada);
+    const pretonicaNasal = contatoNasal && aOuAcentuada && !cur.tonica && !proximaEhNh;
 
     // Vogal final reduz também quando a coda é só o /s/ de plural: nomes, livros.
     const codaSoS = cur.coda.length === 1 && (cur.coda[0] === "s" || cur.coda[0] === "ss");
-    const nucleoIPA = mapearNucleo(cur, {
-      finalPalavra: finalPalavra && (cur.coda.length === 0 || codaSoS),
-      nasalPorCoda: nasalPorCoda || nasalIntervoc,
-      pretonicaNasal,
-    });
+    const nucleoIPA = ehAmFinal
+      ? "ɐ̃ʊ̃"
+      : mapearNucleo(cur, {
+          finalPalavra: finalPalavra && (cur.coda.length === 0 || codaSoS),
+          nasalPorCoda,
+          nasalIntervoc,
+          pretonicaNasal,
+        });
 
     const intervocalico = s > 0 && sil[s - 1].coda.length === 0;
+    const vogalPrincipal = cur.nucleo[cur.nucleo.length - 1] ?? "";
 
-    const onsetIPA = mapearOnset(cur.onset, {
+    // Prefixo ex- + vogal: o x do onset da 2ª sílaba vira z.
+    const onsetCons =
+      prefixoEx && s === 1 && cur.onset[0] === "x"
+        ? ["z", ...cur.onset.slice(1)]
+        : cur.onset;
+
+    const onsetIPA = mapearOnset(onsetCons, {
       nucleoIPA,
       inicioPalavra: s === 0,
       codaAnterior,
       intervocalico,
+      forcarKs,
     });
 
-    const codaIPA = mapearCoda(cur.coda, {
-      proxOnset: prox ? prox.onset.join("") : "",
-      finalPalavra,
-      sonorizarS,
-    });
+    const codaIPA = ehAmFinal
+      ? ""
+      : mapearCoda(cur.coda, {
+          proxOnset: prox ? prox.onset.join("") : "",
+          finalPalavra,
+          sonorizarS,
+          vogalPrincipal,
+          forcarKs,
+        });
 
     codaAnterior = codaIPA;
     const marca = cur.tonica ? "ˈ" : cur.secundaria ? "ˌ" : "";
@@ -498,6 +664,12 @@ function limpar(ipa) {
     .replace(/g/g, "ɡ")        // "g" ASCII não existe no vocabulário do modelo
     .replace(/ˈ{2,}/g, "ˈ")
     .replace(/\u0303{2,}/g, "\u0303")
+    .replace(/ss/g, "s")
+    .replace(/zs/g, "s")
+    // "-ol" tônico final na convenção do espeak (farol → faɾˈɔl, girasol).
+    .replace(/ˈol$/u, "ˈɔl")
+    // "-ídeo" final na convenção do espeak (radionuclídeo → …klˈidʒjʊ).
+    .replace(/id[eɛ]ʊ$/u, "idʒjʊ")
     .trim();
 }
 
